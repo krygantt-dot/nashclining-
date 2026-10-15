@@ -301,6 +301,79 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
   .order-panel .order-submit{max-width:100%}
 }
 </style>
+
+<style id="orderModalAndReviews">
+/* Fit the order window to the visual viewport, without sideways or page-background movement. */
+.order-backdrop{width:100vw;max-width:100vw;overflow-x:hidden;isolation:isolate}
+.order-backdrop .order-panel{
+ display:flex;flex-direction:column;min-width:0;min-height:0;
+ max-width:min(530px,calc(100vw - 24px));
+ width:100%;overflow:hidden;
+ max-height:calc(100dvh - 24px);
+ padding:21px 20px 16px;
+}
+.order-panel>.kicker,.order-panel>h2,.order-panel>p{flex:0 0 auto}
+.order-panel>h2{font-size:clamp(23px,5vw,28px);margin:4px 36px 5px 0}
+.order-panel>p{margin:0 20px 10px 0;font-size:11px;line-height:1.55}
+.order-panel>.close{z-index:10;top:15px;right:15px}
+.order-panel form#orderForm{
+ display:block;flex:1 1 auto;min-height:0;width:100%;
+ overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;
+ -webkit-overflow-scrolling:touch;padding:2px 3px 16px;
+}
+.order-panel #orderForm .field{margin-top:10px}
+.order-panel #orderForm .field input,.order-panel #orderForm .field select,.order-panel #orderForm .field textarea{
+ min-width:0;min-height:46px;width:100%;max-width:100%;margin-top:5px;
+ padding:11px 13px;box-sizing:border-box
+}
+.order-panel #orderForm .field textarea{min-height:66px}
+.order-panel .order-submit{
+ position:sticky;bottom:0;z-index:2;display:flex;
+ margin:13px 0 0;width:100%;min-height:51px;
+ box-shadow:0 -8px 22px #f3f8ffee,0 11px 26px #1162ee30;
+}
+.booking-toast{position:fixed;z-index:180;top:max(20px,env(safe-area-inset-top));left:50%;
+ transform:translateX(-50%);width:min(440px,calc(100vw - 32px));
+ box-shadow:0 19px 55px #123d8855;border-radius:17px;padding:17px 20px;
+ background:#f0fff6;border:1px solid #b6efce;color:#126547;
+ font:700 13px/1.5 Manrope,system-ui,sans-serif;text-align:center}
+@media(max-width:700px){
+ .order-backdrop{padding:10px!important}
+ .order-backdrop .order-panel{
+  flex:1 1 auto;width:100%!important;max-width:calc(100vw - 20px)!important;
+  max-height:calc(100dvh - 20px)!important;
+  border-radius:20px;padding:18px 17px 12px!important
+ }
+ .order-panel .kicker{font-size:10px;margin-bottom:3px}
+ .order-panel h2{margin:3px 38px 5px 0!important;font-size:24px!important}
+ .order-panel>p{font-size:11px!important;line-height:1.5!important;margin:0 25px 8px 0!important}
+ .order-panel form#orderForm{padding-right:2px;padding-bottom:7px}
+ .order-panel .order-submit{font-size:14px;min-height:52px}
+}
+/* Client ratings: gallery-like cards, avatars and transparent demo labels. */
+.reviews{padding:65px 0 76px;background:linear-gradient(150deg,#f5faff 0,#eaf5ff 58%,#fff)}
+.reviews-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px}
+.reviews-heading p{color:#7a8da7;font-size:12px;line-height:1.8;max-width:540px;margin:10px 0 0}
+.reviews-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.review-card{background:#fff;border:1px solid #dfebf9;border-radius:23px;padding:23px;box-shadow:0 10px 35px #154e9712;display:flex;flex-direction:column;min-height:236px}
+.review-stars{color:#ffbb39;letter-spacing:3px;font-size:18px;line-height:1}
+.review-quote{flex:1;color:#324a6b;font-size:13px;line-height:1.85;overflow-wrap:anywhere;margin:15px 0 20px}
+.review-person{display:flex;align-items:center;gap:11px}
+.review-avatar{width:45px;height:45px;flex:none;border-radius:50%;object-fit:cover;display:grid;place-items:center;color:#fff;font-size:19px;font-weight:800;background:linear-gradient(135deg,#1c9dfa,#063cb1)}
+.review-person .name{font-size:12px;font-weight:850;color:#203958}
+.review-person .service{font-size:10px;color:#8091aa;margin-top:3px}
+.review-demo-tag{display:inline-block;width:max-content;max-width:100%;margin-top:12px;padding:5px 9px;background:#f2f6fc;border-radius:9px;color:#69809d;font-size:10px;font-weight:750}
+.reviews-note{font-size:11px;color:#7691af;margin:14px 0 0}
+@media(max-width:900px){.reviews-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){
+ .reviews{padding:48px 0 64px}.reviews-grid{display:flex;gap:12px;
+  overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  padding:3px 0 16px;scrollbar-width:none}
+ .reviews-grid::-webkit-scrollbar{display:none}
+ .review-card{flex:0 0 min(84vw,325px);scroll-snap-align:start;min-height:250px;padding:18px}
+ .review-quote{font-size:12px}
+}
+</style>
 </head>
 <body>
 <div class="site-bg"><div class="ambient a"></div><div class="ambient b"></div></div>
@@ -320,6 +393,13 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
 <section class="prices" id="prices"><div class="container"><div class="section-head reveal"><div><div class="kicker">Прозрачные цены</div><h2 class="section-title">Выберите услугу. <span class="blue-text">Узнайте цену.</span></h2><p class="section-description">Актуальный прайс по предоставленным материалам. Все цены в белорусских рублях (BYN).</p></div></div><div class="price-shell reveal"><div class="price-tabs-shell" id="priceTabsShell"><div class="tabs" role="tablist" aria-label="Категории услуг — горизонтальная прокрутка" id="priceTabs"></div></div><div class="price-area" id="priceArea" aria-live="polite"></div><p class="price-note">* Окончательная стоимость зависит от объёма работ, состояния объекта и степени загрязнения. Предварительный расчёт возможен по фото. Если указано «от», цена стартовая.</p></div></div></section>
 <section class="projects-showcase" id="ourProjects" style="padding:40px 0 88px;display:none"><div class="container"><div class="section-head"><div><div class="kicker">Реальные работы</div><h2 class="section-title">До и <span class="blue-text">после</span></h2><p class="section-description">Фотографии опубликованы нашей командой. Перемещайте ползунок для сравнения.</p></div></div><div id="realProjects" class="ba-grid"></div></div></section>
 <section class="gallery" id="gallery"><div class="container"><div class="section-head reveal"><div><div class="kicker">Наш подход</div><h2 class="section-title">В каждой детали — <span class="blue-text">ощущение свежести</span></h2><p class="section-description">Примеры направлений работы. Фотографии на сайте иллюстративные; наши реальные работы — в Instagram.</p></div><a class="btn btn-outline" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener">Наш Instagram ↗</a></div><div class="gallery-grid"><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80" alt="Уютная гостиная"><span>Мягкая мебель ↗</span></a><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=650&q=80" alt="Автомобиль"><span>Автомобили ↗</span></a><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=650&q=80" alt="Чистая квартира"><span>Квартиры и дома ↗</span></a></div></div></section>
+<section class="reviews" id="reviews"><div class="container">
+  <div class="reviews-heading reveal"><div><div class="kicker">Оценки и впечатления</div>
+    <h2 class="section-title">Что говорят <span class="blue-text">о нашей работе</span></h2>
+    <p>Отзывы с оценками, фотографиями и указанием оказанной услуги.</p></div></div>
+  <div class="reviews-grid" id="customerReviews" aria-live="polite"></div>
+  <p class="reviews-note" id="reviewDisclosure"></p>
+</div></section>
 <section class="coverage" id="coverage"><div class="container coverage-grid"><div class="reveal"><div class="kicker">География работы</div><h2 class="section-title">Приедем <span class="blue-text">к вам</span></h2><p class="section-description">Работаем по Минску и другим городам Беларуси. Уточните возможность и стоимость выезда при записи.</p><div class="cities" id="cityButtons"><button class="city active" data-city="Минск">⌖ Минск</button><button class="city" data-city="Бобруйск">⌖ Бобруйск</button><button class="city" data-city="Солигорск">⌖ Солигорск</button><button class="city" data-city="Жлобин">⌖ Жлобин</button><button class="city" data-city="Рогачёв">⌖ Рогачёв</button></div><button data-order class="btn btn-primary">Узнать стоимость выезда ↗</button></div><div class="map-wrap reveal" id="mapWrap">
   <div class="map-preview" id="mapPreview" role="group" aria-label="Схема городов обслуживания">
     <div class="map-grid"></div>
@@ -489,9 +569,16 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
     const response=await fetch('/api/bookings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     let data={};try{data=await response.json()}catch{}
     if(!response.ok)throw Error(data.error||'Не удалось отправить заявку');
-    status.style.color='#087241';
-    status.textContent='✓ Заявка №'+data.id+' получена. Мы свяжемся с вами для подтверждения. Спасибо!';
+    // Database confirmed the order: close the dialog and keep an easy-to-read confirmation on screen.
     form.reset();
+    closeOrder();
+    document.querySelectorAll('.booking-toast').forEach(el=>el.remove());
+    const toast=document.createElement('div');
+    toast.className='booking-toast';
+    toast.setAttribute('role','status');
+    toast.textContent='✓ Заявка №'+data.id+' успешно отправлена! Мы скоро свяжемся с вами для подтверждения.';
+    document.body.appendChild(toast);
+    setTimeout(()=>toast.remove(),7500);
   }catch(err){
     status.style.color='#a33b44';
     status.textContent=(err instanceof TypeError?'Не удалось подключиться к серверу. Проверьте интернет и попробуйте повторно.':err.message)+' Можно отправить заявку напрямую через WhatsApp: ' ;
@@ -539,6 +626,37 @@ document.getElementById('mapPins').addEventListener('click',event=>{
   if(btn)selectCoverageCity(btn.dataset.mapCity);
 });
 selectCoverageCity('Минск');
+
+
+(function loadCustomerReviews(){
+  const grid=document.getElementById('customerReviews');
+  const note=document.getElementById('reviewDisclosure');
+  if(!grid)return;
+  const samples=[
+    {id:0,author:'Пример отзыва',service:'Химчистка дивана',rating:5,body:'Здесь может появиться отзыв клиента о чистке мебели.',is_demo:true},
+    {id:0,author:'Пример отзыва',service:'Генеральная уборка квартиры',rating:5,body:'Здесь может появиться отзыв клиента об уборке квартиры.',is_demo:true},
+    {id:0,author:'Пример отзыва',service:'Химчистка автомобиля',rating:5,body:'Здесь может появиться отзыв клиента о химчистке салона.',is_demo:true}
+  ];
+  function safe(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+  function render(items,fallback){
+    grid.innerHTML=items.map(r=>{
+      const n=Number(r.rating)||5;
+      const avatar=r.has_avatar&&r.id?'<img class="review-avatar" src="/api/reviews/'+encodeURIComponent(r.id)+'/avatar" alt="Аватар автора">':
+        '<span class="review-avatar" aria-hidden="true">'+safe(String(r.author||'?').slice(0,1).toLocaleUpperCase())+'</span>';
+      return '<article class="review-card"><div class="review-stars" aria-label="Оценка: '+n+' из 5">'+
+        '★'.repeat(n)+'☆'.repeat(5-n)+'</div><p class="review-quote">“'+safe(r.body)+'”</p><div class="review-person">'+avatar+
+        '<div><div class="name">'+safe(r.author)+'</div><div class="service">'+safe(r.service)+'</div></div></div>'+
+        (r.is_demo?'<span class="review-demo-tag">Демонстрационный пример · не отзыв клиента</span>':'')+'</article>';
+    }).join('');
+    note.textContent=fallback?'Это примеры оформления. Реальные отзывы можно добавить в админ-панели.':'Отзывы опубликованы с указанием услуги; демонстрационные примеры отмечены отдельно.';
+  }
+  fetch('/api/reviews',{cache:'no-store'}).then(async res=>{
+    if(!res.ok)throw Error('Не удалось получить отзывы');
+    const data=await res.json();
+    if(!Array.isArray(data))throw Error('Неверный формат');
+    render(data.length?data:samples,!data.length);
+  }).catch(()=>render(samples,true));
+})();
 
 fetch('/api/projects').then(r=>r.ok?r.json():[]).then(items=>{
   if(!Array.isArray(items)||!items.length)return;
