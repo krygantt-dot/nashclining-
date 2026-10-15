@@ -140,11 +140,20 @@ function showApp(){
   go('overview');
 }
 qs('#loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();const button=qs('button[type=submit]',e.currentTarget);button.disabled=true;
+  e.preventDefault();
+  // Capture the form before awaiting: Event.currentTarget becomes null after the handler yields.
+  const form=e.currentTarget;
+  const button=qs('button[type=submit]',form);
+  const credentials=Object.fromEntries(new FormData(form));
+  button.disabled=true;
   qs('#loginError').textContent='';
-  try{await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});e.currentTarget.querySelector('[name=password]').value='';showApp()}
-  catch(err){qs('#loginError').innerHTML='<div class="notice error">'+esc(err.message)+'</div>'}
-  finally{button.disabled=false}
+  try{
+    await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(credentials)});
+    form.querySelector('[name=password]').value='';
+    showApp();
+  }catch(err){
+    qs('#loginError').innerHTML='<div class="notice error">'+esc(err.message)+'</div>';
+  }finally{button.disabled=false}
 });
 qs('#logout').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch{}showLogin();toast('Вы вышли из кабинета')});
 function closeMenu(){qs('#sidebar').classList.remove('open');qs('#overlay').classList.add('hidden')}
