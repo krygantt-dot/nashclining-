@@ -1,0 +1,19 @@
+{
+  "name": "nash-klining",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Наш Клининг — сайт, запись и админ-панель",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check data/defaultPrices.cjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.3",
+    "multer": "^2.0.2"
+  }
+}

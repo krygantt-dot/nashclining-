@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Админ-панель | Наш Клининг</title><meta name="robots" content="noindex,nofollow">
+<style>
+:root{--blue:#1467ff;--navy:#112956;--ink:#163058;--muted:#6c80a0;--line:#dce8f7;--bg:#edf6ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#e7f4ff,#fff 55%,#e8edff);min-height:100vh;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}button,a{-webkit-tap-highlight-color:transparent}
+.page{max-width:1200px;margin:auto;padding:26px 18px 80px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:13px;font-weight:850;font-size:20px;text-decoration:none;color:var(--navy)}.brand img{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:contain}
+.hint{color:var(--muted);font-size:12px}.panel{background:#ffffffdf;backdrop-filter:blur(24px);border:1px solid #fff;border-radius:26px;padding:clamp(18px,3vw,32px);box-shadow:0 20px 65px #174d9920}
+.login{max-width:440px;margin:11vh auto 0}.login h1{font-size:30px;margin:0 0 10px}
+.field{display:flex;flex-direction:column;gap:7px;margin:14px 0;font-weight:650}.field input,.field select,.field textarea,textarea.code{width:100%;border:1px solid var(--line);border-radius:13px;background:#f8fbff;padding:13px;color:var(--ink);outline-color:var(--blue)}
+button.primary,.primary{border:0;border-radius:14px;background:linear-gradient(120deg,#0b43d1,#167dff);color:white;font-weight:750;padding:12px 19px;box-shadow:0 8px 20px #1476ea33}
+button.secondary{border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);font-weight:650;padding:11px 16px}
+button.danger{border:0;background:#fff0f2;color:#c12b4c;border-radius:10px;padding:8px 10px}
+button.small{padding:7px 10px;border-radius:9px}
+.notice{padding:12px 16px;border-radius:12px;background:#edf5ff;color:#1747a3;margin:14px 0}.notice.error{background:#fff1f1;color:#a12b43}
+.tabs{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 22px}.tabs button{border:1px solid #d7e9ff;background:#fff;padding:10px 15px;border-radius:12px;color:var(--ink);font-weight:750}.tabs button.active{background:var(--blue);color:white}
+h1,h2,h3{color:var(--navy)}h2{font-size:25px;margin:0 0 18px}h3{font-size:17px;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{border:1px solid var(--line);border-radius:17px;padding:22px;background:#f5faff}.metric strong{font-size:33px;display:block;color:var(--blue)}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:normal}th{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;padding:5px 8px;border-radius:9px;background:#e8f4ff;color:#1762c3;font-size:11px;font-weight:700}
+.group{background:#f5faff;border:1px solid var(--line);border-radius:20px;padding:20px;margin:14px 0}
+.price-line{display:grid;grid-template-columns:1fr 170px auto;gap:8px;align-items:center;padding:8px 0}
+.price-line input{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:9px;background:#fff}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.toolbar select{min-width:220px;border:1px solid var(--line);padding:11px;border-radius:13px;background:white}
+.projects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.project{padding:15px;border:1px solid var(--line);background:#f7fbff;border-radius:18px}.project .photos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.project img{width:100%;height:145px;object-fit:cover;border-radius:12px}
+.hidden{display:none!important}.right{margin-left:auto}
+@media(max-width:700px){.grid,.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.price-line{grid-template-columns:1fr 100px auto}.page{padding:18px 12px 70px}}@media(max-width:480px){.grid,.projects{grid-template-columns:1fr}table{font-size:12px}}
+</style></head><body><main class="page">
+<header class="top"><a class="brand" href="/"><img src="/assets/logo.png" alt=""> Наш Клининг <span class="hint">/ управление</span></a><button class="secondary hidden" id="logout">Выйти ↗</button></header>
+<div class="panel login" id="loginBox"><h1>Вход в панель</h1><p class="hint">Доступ только администраторам компании.</p><form id="loginForm"><label class="field">Логин<input name="username" value="admin" autocomplete="username" required></label><label class="field">Пароль<input name="password" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">Войти →</button></form><div id="loginNotice"></div></div>
+<div class="hidden" id="appBox"><div class="tabs" id="tabs"><button class="active" data-view="dashboard">Обзор</button><button data-view="bookings">Заявки</button><button data-view="prices">Цены</button><button data-view="projects">Работы до/после</button></div>
+<div class="panel" id="viewBox"><div id="message"></div><div id="viewBody"></div></div></div>
+</main><script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const statuses={new:'Новая',contacted:'Связались',confirmed:'Подтверждена',completed:'Выполнена',cancelled:'Отменена'};
+let prices={},projects=[],bookings=[],view='dashboard';
+async function api(url,options={}){
+  const r=await fetch(url,{credentials:'same-origin',...options});
+  const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}
+  if(!r.ok)throw Error(data.error||'Ошибка сервера '+r.status);return data;
+}
+function alertMessage(text,bad=false,target='#message'){const el=$(target);if(!el)return;el.innerHTML='<div class="notice '+(bad?'error':'')+'">'+esc(text)+'</div>';}
+function authenticated(){
+  $('#loginBox').classList.add('hidden');$('#appBox').classList.remove('hidden');$('#logout').classList.remove('hidden');show('dashboard');
+}
+$('#loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;
+  try{await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});authenticated();}
+  catch(e){alertMessage(e.message,true,'#loginNotice')}finally{btn.disabled=false}
+});
+$('#logout').onclick=async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch{}location.reload()};
+$('#tabs').onclick=e=>{const btn=e.target.closest('[data-view]');if(btn)show(btn.dataset.view)};
+async function show(next){
+  view=next;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===next));
+  $('#viewBody').innerHTML='<div class="hint">Загружаем данные…</div>';$('#message').innerHTML='';
+  try{
+    if(next==='dashboard')await dashboard();
+    if(next==='bookings')await bookingView();
+    if(next==='prices')await pricesView();
+    if(next==='projects')await projectsView();
+  }catch(e){alertMessage(e.message,true)}
+}
+async function dashboard(){
+  const data=await api('/api/admin/stats');const t=data.totals||{};
+  $('#viewBody').innerHTML='<h2>Обзор заявок</h2><div class="grid">'+
+    [['Всего',t.total],['Новых',t.new_count],['За 7 дней',t.last_week],['Выполнено',t.completed]]
+    .map(([label,value])=>'<div class="metric"><div>'+esc(label)+'</div><strong>'+esc(value??0)+'</strong></div>').join('')+
+    '</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-top:25px">'+
+    '<div><h3>Популярные услуги</h3>'+(data.services||[]).map(x=>'<p>'+esc(x.service)+' — <b>'+esc(x.count)+'</b></p>').join('')+'</div>'+
+    '<div><h3>Города</h3>'+(data.cities||[]).map(x=>'<p>'+esc(x.city)+' — <b>'+esc(x.count)+'</b></p>').join('')+'</div></div>';
+}
+async function bookingView(){
+  bookings=await api('/api/admin/bookings');
+  $('#viewBody').innerHTML='<h2>Заявки клиентов</h2><div class="toolbar"><span class="hint">Последние 300 заявок</span><button class="secondary right" id="refreshBookings">Обновить</button></div>'+
+  '<div class="table-wrap"><table><thead><tr><th>Заявка</th><th>Контакты</th><th>Услуга / город</th><th>Дата</th><th>Статус</th><th></th></tr></thead><tbody>'+
+    bookings.map(b=>'<tr><td><b>#'+esc(b.id)+'</b><br><span class="hint">'+esc(new Date(b.created_at).toLocaleString('ru-RU'))+'</span></td>'+
+      '<td>'+esc(b.name)+'<br><a href="tel:'+encodeURIComponent(b.phone)+'">'+esc(b.phone)+'</a></td>'+
+      '<td>'+esc(b.service)+'<br>'+esc(b.city)+(b.details?'<p class="hint">'+esc(b.details)+'</p>':'')+'</td>'+
+      '<td>'+esc((b.preferred_date||'').slice(0,10))+' '+esc(b.preferred_time||'')+'</td>'+
+      '<td><select data-status="'+esc(b.id)+'">'+Object.keys(statuses).map(k=>'<option value="'+k+'" '+(b.status===k?'selected':'')+'>'+statuses[k]+'</option>').join('')+'</select></td>'+
+      '<td><button class="danger small" data-delete-booking="'+esc(b.id)+'">Удалить</button></td></tr>').join('')+
+  '</tbody></table></div>'+(bookings.length?'':'<p>Пока нет заявок.</p>');
+  $('#refreshBookings').onclick=bookingView;
+  document.querySelectorAll('[data-status]').forEach(el=>el.onchange=async()=>{try{await api('/api/admin/bookings/'+el.dataset.status,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:el.value})});alertMessage('Статус обновлён')}catch(e){alertMessage(e.message,true)}});
+  document.querySelectorAll('[data-delete-booking]').forEach(el=>el.onclick=async()=>{if(!confirm('Удалить заявку без возможности восстановления?'))return;try{await api('/api/admin/bookings/'+el.dataset.deleteBooking,{method:'DELETE'});bookingView()}catch(e){alertMessage(e.message,true)}});
+}
+async function pricesView(){
+  prices=await api('/api/admin/prices');const categories=Object.keys(prices);
+  $('#viewBody').innerHTML='<h2>Управление ценами</h2><p class="hint">Изменения сразу отображаются в публичном прайсе после сохранения. Все суммы вводите с единицами, например «от 55 BYN».</p>'+
+    '<div class="toolbar"><label>Раздел <select id="categoryPick">'+categories.map(c=>'<option value="'+esc(c)+'">'+esc(prices[c].label)+'</option>').join('')+'</select></label><button class="primary right" id="savePrices">Сохранить цены</button></div><div id="cardsEditor"></div>';
+  $('#categoryPick').onchange=renderPriceEditor;
+  $('#savePrices').onclick=savePrices;
+  renderPriceEditor();
+}
+function renderPriceEditor(){
+  const cat=$('#categoryPick').value,p=prices[cat];
+  $('#cardsEditor').innerHTML=p.cards.map((card,j)=>'<div class="group"><h3>'+esc(card.name)+'</h3><p class="hint">'+esc(card.desc)+'</p>'+
+   '<div class="price-lines">'+card.items.map(([name,price],i)=>'<div class="price-line"><input aria-label="Название услуги" data-cat="'+esc(cat)+'" data-card="'+j+'" data-item="'+i+'" data-key="0" value="'+esc(name)+'">'+
+      '<input aria-label="Стоимость" data-cat="'+esc(cat)+'" data-card="'+j+'" data-item="'+i+'" data-key="1" value="'+esc(price)+'">'+
+      '<button class="danger small" data-remove="'+j+':'+i+'" type="button" title="Убрать позицию">×</button></div>').join('')+'</div>'+
+   '<button class="secondary small" data-add="'+j+'" type="button">+ Добавить позицию</button></div>').join('')+
+   '<div class="toolbar"><button class="primary" id="savePricesBottom">Сохранить изменения</button></div>';
+  document.querySelectorAll('[data-key]').forEach(input=>input.oninput=()=>{
+    const {cat,card,item,key}=input.dataset;prices[cat].cards[Number(card)].items[Number(item)][Number(key)]=input.value;
+  });
+  document.querySelectorAll('[data-add]').forEach(button=>button.onclick=()=>{
+    prices[cat].cards[Number(button.dataset.add)].items.push(['Новая услуга','от 0 BYN']);renderPriceEditor();
+  });
+  document.querySelectorAll('[data-remove]').forEach(button=>button.onclick=()=>{
+    const [j,i]=button.dataset.remove.split(':').map(Number);
+    prices[cat].cards[j].items.splice(i,1);renderPriceEditor();
+  });
+  $('#savePricesBottom').onclick=savePrices;
+}
+async function savePrices(){
+  try{await api('/api/admin/prices',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(prices)});alertMessage('Цены сохранены. Клиенты увидят новый прайс после обновления страницы.')}
+  catch(e){alertMessage(e.message,true)}
+}
+async function projectsView(){
+  projects=await api('/api/projects');
+  $('#viewBody').innerHTML='<h2>Работы «До / После»</h2><p class="hint">Добавляйте фотографии реальных работ: PNG, JPG или WebP, до 4 МБ каждая.</p>'+
+    '<form id="projectForm" class="group"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))"><label class="field">Название<input name="title" required maxlength="120" placeholder="Химчистка дивана"></label>'+
+    '<label class="field">Категория<input name="category" required maxlength="100" placeholder="Мебель"></label>'+
+    '<label class="field">До<input type="file" name="before" accept="image/jpeg,image/png,image/webp" required></label>'+
+    '<label class="field">После<input type="file" name="after" accept="image/jpeg,image/png,image/webp" required></label></div>'+
+    '<label class="field">Описание<input name="description" maxlength="500" placeholder="Удаление пятен и запахов"></label><button type="submit" class="primary">Добавить работу</button></form>'+
+    '<h3>Опубликованные работы</h3><div class="projects">'+projects.map(p=>'<div class="project"><div class="photos"><img alt="До" loading="lazy" src="/api/projects/'+p.id+'/before"><img alt="После" loading="lazy" src="/api/projects/'+p.id+'/after"></div>'+
+     '<h3>'+esc(p.title)+'</h3><p class="hint">'+esc(p.category)+' • '+esc(p.description)+'</p><button class="danger small" data-delete-project="'+esc(p.id)+'">Удалить</button></div>').join('')+'</div>';
+  $('#projectForm').onsubmit=async e=>{
+    e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;
+    try{await api('/api/admin/projects',{method:'POST',body:new FormData(e.currentTarget)});alertMessage('Работа добавлена');projectsView()}
+    catch(e){alertMessage(e.message,true)}finally{b.disabled=false}
+  };
+  document.querySelectorAll('[data-delete-project]').forEach(b=>b.onclick=async()=>{if(!confirm('Удалить опубликованную работу?'))return;try{await api('/api/admin/projects/'+b.dataset.deleteProject,{method:'DELETE'});projectsView()}catch(e){alertMessage(e.message,true)}});
+}
+api('/api/admin/me').then(authenticated).catch(()=>{});
+</script></body></html>
