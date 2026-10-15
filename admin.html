@@ -381,6 +381,40 @@ async function telegramView(){
       '<div class="empty">Диалоги появятся после первого сообщения клиента, доступного Business-боту.</div>')+
     '<p style="margin-top:18px;color:#7186a1;font-size:11px">⚠ Ключ OpenAI хранится только в Render. Не подключайте AI ко всем личным чатам: выберите только рабочие. Сообщения клиента передаются OpenAI для генерации ответа, а последние реплики диалога хранятся в PostgreSQL.</p></div>'
   );
+  const diag=business.diagnostics||{},w=diag.webhook||{},queue=diag.queue||{};
+  const approvedAccounts=(business.connections||[]).filter(x=>x.approved);
+  const readyAccounts=approvedAccounts.filter(x=>x.can_reply&&x.enabled);
+  const readiness=business.openaiConfigured&&business.enabled&&w.configured&&readyAccounts.length>0;
+  const issue=!business.openaiConfigured?'OpenAI API не подключён':
+    !business.enabled?'Автоответы отключены в админке':
+    !w.configured?'Telegram webhook не подключён к этому серверу':
+    !approvedAccounts.length?'Нужно одобрить Telegram-аккаунт':
+    !readyAccounts.length?'Telegram разрешил чтение чатов, но НЕ разрешил боту отвечать от вашего имени':
+    'Подключение готово. Проверьте сообщение из разрешённого рабочего чата.';
+  const lastInbound=queue.last_received?new Date(queue.last_received).toLocaleString('ru-RU'):'Пока нет';
+  qs('#mainView').insertAdjacentHTML('beforeend',
+    '<div class="panel" style="margin-top:16px" id="businessHealth">'+
+    '<div class="panel-head"><div><h2>Проверка работы AI</h2><p>Данные обновляются из Telegram и PostgreSQL</p></div></div>'+
+    '<div class="notice '+(readiness?'':'warn')+'">'+(readiness?'✅ ':'⚠ ')+esc(issue)+'</div>'+
+    '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));margin:14px 0">'+
+    '<div class="stat"><div class="value" style="font-size:16px">'+(w.configured?'✅ Работает':'⚠ Не настроен')+'</div><div class="name">Webhook Telegram</div></div>'+
+    '<div class="stat"><div class="value">'+esc(w.pending||0)+'</div><div class="name">Ожидают в Telegram</div></div>'+
+    '<div class="stat"><div class="value">'+esc(queue.pending||0)+'</div><div class="name">AI в очереди</div></div>'+
+    '<div class="stat"><div class="value">'+esc(queue.sent||0)+'</div><div class="name">AI ответил</div></div>'+
+    '<div class="stat"><div class="value">'+esc(queue.skipped||0)+'</div><div class="name">Пропущено</div></div>'+
+    '<div class="stat"><div class="value">'+esc(queue.failed||0)+'</div><div class="name">Ошибок</div></div></div>'+
+    '<p class="subtitle">Последнее сообщение клиента в очереди: <strong>'+esc(lastInbound)+'</strong></p>'+
+    (w.error?'<div class="notice warn">Webhook: '+esc(w.error)+'</div>':'')+
+    (diag.lastError?'<div class="notice warn">Последняя ошибка AI: '+esc(diag.lastError)+'</div>':'')+
+    (diag.permissionErrors||[]).map(m=>'<div class="notice warn">'+esc(m)+'</div>').join('')+
+    (!readyAccounts.length&&approvedAccounts.length?
+      '<p class="subtitle" style="margin-top:12px">В Telegram → Настройки → Автоматизация чатов → ваш бот проверьте право отправлять сообщения от имени аккаунта. После изменения нажмите «Обновить подключения». Telegram показывает доступ к чату отдельно от права отвечать.</p>':
+      '')+
+    '<div class="toolbar" style="margin-top:15px"><button class="btn soft" type="button" id="refreshBusinessDiagnostics">↻ Проверить Telegram и AI</button></div>'+
+    '</div>'
+  );
+  qs('#refreshBusinessDiagnostics').onclick=()=>telegramView();
+
   qs('#registerBusinessWebhook').onclick=async()=>{
     if(!confirm('Подключить webhook этого проекта к вашему Telegram-боту? Если бот уже используется другим сервисом, он может перестать получать сообщения там.'))return;
     const btn=qs('#registerBusinessWebhook');btn.disabled=true;
