@@ -100,7 +100,10 @@ void initialize();
 if(db){
   // Periodic cleanup of expired hashed session records.
   const purgeTimer=setInterval(()=>{
-    if(databaseReady)db.query('DELETE FROM admin_sessions WHERE expires_at<=now()').catch(err=>console.error('Session cleanup:',err.message));
+    if(!databaseReady)return;
+    db.query('DELETE FROM admin_sessions WHERE expires_at<=now()').catch(err=>console.error('Session cleanup:',err.message));
+    db.query("DELETE FROM tg_business_history WHERE created_at<now()-interval '30 days'").catch(err=>console.error('Business history cleanup:',err.message));
+    db.query("DELETE FROM tg_business_jobs WHERE received_at<now()-interval '14 days' AND status IN ('sent','skipped','failed')").catch(err=>console.error('Business job cleanup:',err.message));
   },12*60*60*1000);
   purgeTimer.unref?.();
   const checkTimer=setInterval(async()=>{
@@ -398,7 +401,14 @@ async function respondToBusinessJob(job){
   const history=await db.query("SELECT role,content FROM (SELECT role,content,id FROM tg_business_history WHERE connection_id=$1 AND chat_id=$2 ORDER BY id DESC LIMIT 10) m ORDER BY id ASC",
     [job.connection_id,job.chat_id]);
   let result;
-  if(businessNeedsHuman(job.message)){
+  const repliesLastHour=await db.query(
+    "SELECT count(*)::int AS n FROM tg_business_history WHERE connection_id=$1 AND chat_id=$2 AND role='assistant' AND created_at>now()-interval '1 hour'",
+    [job.connection_id,job.chat_id]
+  );
+  if(Number(repliesLastHour.rows[0]?.n)>=25){
+    result={reply:'Чтобы помочь вам быстрее, передам переписку консультанту. Он уточнит детали лично.',
+      handoff:true,reason:'Лимит AI-ответов для одного диалога'};
+  }else if(businessNeedsHuman(job.message)){
     result={reply:'Понял вас. Передаю вопрос консультанту «Наш Клининг», он ответит вам лично в этом чате.',handoff:true,reason:'Клиент просит консультанта или требуется индивидуальное решение'};
   }else{
     try{
@@ -482,6 +492,7 @@ app.post('/api/telegram/business-webhook',guard(async(req,res)=>{
       const peer=msg.from||{};
       const name=safeString([peer.first_name,peer.last_name].filter(Boolean).join(' ')||msg.chat.first_name||'Клиент',80);
       const isOwner=Number(peer.id)===Number(conn.owner_id);
+      if(msg.sender_business_bot)return res.json({ok:true});
       if(isOwner){
         // Do not pause AI when the owner starts a fresh conversation. Human takeover after AI spoke pauses it.
         if(!msg.sender_business_bot){
@@ -499,15 +510,18 @@ app.post('/api/telegram/business-webhook',guard(async(req,res)=>{
         const chat=await db.query("SELECT paused FROM tg_business_chats WHERE connection_id=$1 AND chat_id=$2",[connId,msg.chat.id]);
         if(conn.can_reply&&enabled&&process.env.OPENAI_API_KEY&&!chat.rows[0]?.paused){
           if(content){
-            await db.query("INSERT INTO tg_business_history(connection_id,chat_id,role,content) VALUES($1,$2,'user',$3)",
-              [connId,msg.chat.id,content]);
-            await db.query("UPDATE tg_business_jobs SET status='skipped' WHERE connection_id=$1 AND chat_id=$2 AND status='pending'",
-              [connId,msg.chat.id]);
-            await db.query(
+            const inserted=await db.query(
               "INSERT INTO tg_business_jobs(update_id,connection_id,chat_id,message_id,message)"+
-              " VALUES($1,$2,$3,$4,$5) ON CONFLICT(update_id) DO NOTHING",
+              " VALUES($1,$2,$3,$4,$5) ON CONFLICT(update_id) DO NOTHING RETURNING update_id",
               [update.update_id,connId,msg.chat.id,msg.message_id,content]
             );
+            // Telegram may retry webhooks. Do not duplicate history or cancel the pending job.
+            if(inserted.rowCount){
+              await db.query("INSERT INTO tg_business_history(connection_id,chat_id,role,content) VALUES($1,$2,'user',$3)",
+                [connId,msg.chat.id,content]);
+              await db.query("UPDATE tg_business_jobs SET status='skipped' WHERE connection_id=$1 AND chat_id=$2 AND status='pending' AND update_id<>$3",
+                [connId,msg.chat.id,update.update_id]);
+            }
           }else{
             await db.query("UPDATE tg_business_chats SET paused=true,escalated=true WHERE connection_id=$1 AND chat_id=$2",
               [connId,msg.chat.id]);
@@ -558,7 +572,8 @@ app.post('/api/admin/business-ai/connections/:id',auth,needDB,guard(async(req,re
   res.json({ok:true,approved});
 }));
 app.post('/api/admin/business-ai/chats/:id',auth,needDB,guard(async(req,res)=>{
-  const [connId,chatId]=String(req.params.id||'').split(':');
+  const rawId=String(req.params.id||'');const separator=rawId.lastIndexOf(':');
+  const connId=rawId.slice(0,separator),chatId=rawId.slice(separator+1);
   if(!connId||!/^\d{1,17}$/.test(chatId||''))return res.sendStatus(400);
   const pause=req.body?.paused===true;
   const r=await db.query("UPDATE tg_business_chats SET paused=$3,escalated=false WHERE connection_id=$1 AND chat_id=$2 RETURNING chat_id",
