@@ -212,54 +212,37 @@ html.motion-on .hero-art .bubble-field .bubble {
 </style>
 
 <style id="mobilePriceFix">
-/* Keep the services section call-to-action inside the screen. */
-.services .section-head {flex-wrap:wrap;min-width:0}
-.services .section-head > div {min-width:0;max-width:100%}
-.services .section-head .btn {flex-shrink:0;max-width:100%}
-/* Price categories are a horizontally swipeable list with a visual cue. */
+/* Both section action buttons wrap below the heading on narrow screens. */
+.services .section-head,.gallery .section-head {min-width:0;flex-wrap:wrap}
+.services .section-head > div,.gallery .section-head > div {min-width:0;max-width:100%}
+.services .section-head > .btn,.gallery .section-head > .btn {flex-shrink:0;max-width:100%}
 .price-tabs-shell {position:relative;min-width:0}
-.price-swipe-hint {display:none}
-@media (max-width:700px) {
-  .services .section-head {
-    display:flex;flex-direction:column;align-items:flex-start;
-    gap:17px;width:100%;min-width:0
+@media(max-width:700px) {
+  .services .section-head,.gallery .section-head {
+    display:flex;flex-direction:column;align-items:flex-start;gap:17px;
+    width:100%;min-width:0
   }
-  .services .section-head .btn {
+  .services .section-head > .btn,.gallery .section-head > .btn {
     align-self:flex-start;display:inline-flex;width:auto;max-width:100%;
-    white-space:normal;overflow-wrap:break-word;
-    font-size:12px;line-height:1.35;padding:13px 17px;
+    white-space:normal;overflow-wrap:break-word;font-size:12px;
+    line-height:1.35;padding:13px 17px;text-align:center
   }
-  .price-tabs-shell {padding-top:28px}
+  /* Actual category buttons gently slide right and back; no hint, label or emoji. */
   .price-tabs-shell .tabs {
-    display:flex;overflow-x:auto;overflow-y:hidden;max-width:100%;
+    display:flex;max-width:100%;overflow-x:auto;overflow-y:hidden;
     -webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain;
-    scroll-snap-type:x proximity;scrollbar-width:none;
-    padding-bottom:17px
+    scroll-snap-type:none!important;scrollbar-width:none;
+    touch-action:pan-x;padding:0 2px 16px
   }
   .price-tabs-shell .tabs::-webkit-scrollbar {display:none}
-  .price-tabs-shell .tabs button {flex:none;scroll-snap-align:start}
-  .price-tabs-shell.is-overflowing:not(.at-end)::after {
-    content:"";position:absolute;right:0;top:28px;bottom:17px;
-    width:30px;pointer-events:none;
-    background:linear-gradient(90deg,transparent,#f3f9ff 85%);
-    border-radius:0 13px 13px 0
+  .price-tabs-shell .tabs button {flex:none}
+  .price-tabs-shell::after {
+    content:"";position:absolute;right:0;top:0;bottom:16px;
+    width:23px;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(237,246,255,.95));
+    border-radius:0 14px 14px 0;opacity:0;transition:opacity .25s
   }
-  .price-tabs-shell.is-overflowing .price-swipe-hint {
-    position:absolute;right:3px;top:-4px;z-index:2;
-    display:flex;gap:6px;align-items:center;white-space:nowrap;
-    color:#2166d8;font-size:10px;line-height:1.2;font-weight:800;
-    pointer-events:none;opacity:1
-  }
-  .price-swipe-hint .swipe-hand {font-size:14px;transform:rotate(-90deg)}
-  .price-swipe-hint .swipe-arrow {font-size:17px;line-height:1;display:inline-block;animation:priceSwipeArrow 2.5s ease-in-out infinite}
-  .price-tabs-shell.at-end .price-swipe-hint {opacity:0}
-  @keyframes priceSwipeArrow {
-    0%,100% {transform:translateX(0)}
-    50% {transform:translateX(8px)}
-  }
-}
-@media (prefers-reduced-motion:reduce) {
-  .price-swipe-hint .swipe-arrow {animation:none}
+  .price-tabs-shell.has-more::after {opacity:1}
 }
 </style>
 </head>
@@ -278,7 +261,7 @@ html.motion-on .hero-art .bubble-field .bubble {
 <article class="service reveal"><div class="photo-wrap"><img loading="lazy" src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=700&q=80" alt="Интерьер после отделки"><span class="service-icon">✦</span></div><div class="service-body"><h3>Уборка после ремонта</h3><p>Удаление строительной пыли, приведение объекта в порядок.</p><button data-service="Уборка после ремонта">Узнать стоимость →</button></div></article>
 </div></div></section>
 <section class="advantages" id="advantages"><div class="container"><div class="kicker" style="color:#a4d5ff">Почему мы</div><h2 class="section-title">Когда чистота — это <span style="color:#94eaff">забота</span></h2><p class="section-description">Профессиональный подход к привычным вещам.</p><div class="adv-grid"><div class="adv reveal"><span>✦</span><strong>Опытные специалисты</strong><p>Внимательно относимся к каждой задаче.</p></div><div class="adv reveal"><span>☘</span><strong>Гипоаллергенная химия</strong><p>Подбираем средства под материал и загрязнение.</p></div><div class="adv reveal"><span>⚙</span><strong>Профессиональное оборудование</strong><p>Техника для качественной глубокой чистки.</p></div><div class="adv reveal"><span>◷</span><strong>Гибкий график</strong><p>Подберём удобное время выезда.</p></div><div class="adv reveal"><span>♢</span><strong>Гарантия качества</strong><p>Ответственно подходим к результату.</p></div></div></div></section>
-<section class="prices" id="prices"><div class="container"><div class="section-head reveal"><div><div class="kicker">Прозрачные цены</div><h2 class="section-title">Выберите услугу. <span class="blue-text">Узнайте цену.</span></h2><p class="section-description">Актуальный прайс по предоставленным материалам. Все цены в белорусских рублях (BYN).</p></div></div><div class="price-shell reveal"><div class="price-tabs-shell" id="priceTabsShell"><div class="price-swipe-hint" aria-hidden="true"><span class="swipe-hand">☝</span><span>Листайте категории</span><span class="swipe-arrow">→</span></div><div class="tabs" role="tablist" aria-label="Категории услуг — листайте влево и вправо" id="priceTabs"></div></div><div class="price-area" id="priceArea" aria-live="polite"></div><p class="price-note">* Окончательная стоимость зависит от объёма работ, состояния объекта и степени загрязнения. Предварительный расчёт возможен по фото. Если указано «от», цена стартовая.</p></div></div></section>
+<section class="prices" id="prices"><div class="container"><div class="section-head reveal"><div><div class="kicker">Прозрачные цены</div><h2 class="section-title">Выберите услугу. <span class="blue-text">Узнайте цену.</span></h2><p class="section-description">Актуальный прайс по предоставленным материалам. Все цены в белорусских рублях (BYN).</p></div></div><div class="price-shell reveal"><div class="price-tabs-shell" id="priceTabsShell"><div class="tabs" role="tablist" aria-label="Категории услуг — горизонтальная прокрутка" id="priceTabs"></div></div><div class="price-area" id="priceArea" aria-live="polite"></div><p class="price-note">* Окончательная стоимость зависит от объёма работ, состояния объекта и степени загрязнения. Предварительный расчёт возможен по фото. Если указано «от», цена стартовая.</p></div></div></section>
 <section class="projects-showcase" id="ourProjects" style="padding:40px 0 88px;display:none"><div class="container"><div class="section-head"><div><div class="kicker">Реальные работы</div><h2 class="section-title">До и <span class="blue-text">после</span></h2><p class="section-description">Фотографии опубликованы нашей командой. Перемещайте ползунок для сравнения.</p></div></div><div id="realProjects" class="ba-grid"></div></div></section>
 <section class="gallery" id="gallery"><div class="container"><div class="section-head reveal"><div><div class="kicker">Наш подход</div><h2 class="section-title">В каждой детали — <span class="blue-text">ощущение свежести</span></h2><p class="section-description">Примеры направлений работы. Фотографии на сайте иллюстративные; наши реальные работы — в Instagram.</p></div><a class="btn btn-outline" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener">Наш Instagram ↗</a></div><div class="gallery-grid"><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80" alt="Уютная гостиная"><span>Мягкая мебель ↗</span></a><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=650&q=80" alt="Автомобиль"><span>Автомобили ↗</span></a><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=650&q=80" alt="Чистая квартира"><span>Квартиры и дома ↗</span></a></div></div></section>
 <section class="coverage" id="coverage"><div class="container coverage-grid"><div class="reveal"><div class="kicker">География работы</div><h2 class="section-title">Приедем <span class="blue-text">к вам</span></h2><p class="section-description">Работаем по Минску и другим городам Беларуси. Уточните возможность и стоимость выезда при записи.</p><div class="cities" id="cityButtons"><button class="city active" data-city="Минск">⌖ Минск</button><button class="city" data-city="Бобруйск">⌖ Бобруйск</button><button class="city" data-city="Солигорск">⌖ Солигорск</button><button class="city" data-city="Жлобин">⌖ Жлобин</button><button class="city" data-city="Рогачёв">⌖ Рогачёв</button></div><button data-order class="btn btn-primary">Узнать стоимость выезда ↗</button></div><div class="map-wrap reveal" id="mapWrap">
@@ -322,52 +305,82 @@ const prices={
 };
 const tabs=document.getElementById('priceTabs'),area=document.getElementById('priceArea');let activePrice='home';
 const priceTabsShell=document.getElementById('priceTabsShell');
-let priceTabsNudged=false;
-function updatePriceTabsHint(){
-  const mobile=window.matchMedia('(max-width:700px)').matches;
-  const overflow=mobile&&tabs.scrollWidth>tabs.clientWidth+12;
-  priceTabsShell.classList.toggle('is-overflowing',overflow);
-  priceTabsShell.classList.toggle('at-end',!overflow||tabs.scrollLeft+tabs.clientWidth>=tabs.scrollWidth-14);
+let priceTabPreviewStopped=false,priceTabVisible=false,priceTabRaf=0,priceTabTimer=0;
+function updatePriceTabsOverflow(){
+  const narrow=window.matchMedia('(max-width:700px)').matches;
+  const hasMore=narrow&&tabs.scrollWidth>tabs.clientWidth+12&&tabs.scrollLeft+tabs.clientWidth<tabs.scrollWidth-12;
+  priceTabsShell.classList.toggle('has-more',hasMore);
 }
-tabs.addEventListener('scroll',updatePriceTabsHint,{passive:true});
-window.addEventListener('resize',updatePriceTabsHint);
+function cancelPriceTabMotion(){
+  if(priceTabRaf)cancelAnimationFrame(priceTabRaf);
+  if(priceTabTimer)clearTimeout(priceTabTimer);
+  priceTabRaf=0;priceTabTimer=0;
+}
+function stopPriceTabPreview(){
+  priceTabPreviewStopped=true;
+  cancelPriceTabMotion();
+  updatePriceTabsOverflow();
+}
+['touchstart','pointerdown','wheel','keydown'].forEach(eventName=>{
+  tabs.addEventListener(eventName,stopPriceTabPreview,{passive:true});
+});
+tabs.addEventListener('scroll',updatePriceTabsOverflow,{passive:true});
+window.addEventListener('resize',updatePriceTabsOverflow);
+function animatePriceTabScroll(destination,duration,done){
+  const initial=tabs.scrollLeft,started=performance.now();
+  function tick(now){
+    if(priceTabPreviewStopped||!priceTabVisible||document.hidden){priceTabRaf=0;return;}
+    const progress=Math.min(1,(now-started)/duration);
+    const eased=progress<.5?4*progress*progress*progress:1-Math.pow(-2*progress+2,3)/2;
+    tabs.scrollLeft=initial+(destination-initial)*eased;
+    updatePriceTabsOverflow();
+    if(progress<1)priceTabRaf=requestAnimationFrame(tick);
+    else {priceTabRaf=0;if(done)done();}
+  }
+  priceTabRaf=requestAnimationFrame(tick);
+}
+function runPriceTabPreview(){
+  if(priceTabPreviewStopped||!priceTabVisible||document.hidden||!window.matchMedia('(max-width:700px)').matches)return;
+  const available=tabs.scrollWidth-tabs.clientWidth;
+  if(available<65||tabs.scrollLeft>6)return;
+  const amount=Math.min(112,available);
+  animatePriceTabScroll(amount,1050,()=>{
+    priceTabTimer=setTimeout(()=>{
+      animatePriceTabScroll(0,1000,()=>{
+        priceTabTimer=setTimeout(runPriceTabPreview,11500);
+      });
+    },550);
+  });
+}
+if('IntersectionObserver' in window){
+  const observer=new IntersectionObserver(entries=>{
+    priceTabVisible=entries.some(e=>e.isIntersecting);
+    if(priceTabVisible&&!priceTabPreviewStopped){
+      cancelPriceTabMotion();
+      priceTabTimer=setTimeout(runPriceTabPreview,700);
+    } else if(!priceTabVisible){
+      cancelPriceTabMotion();
+    }
+  },{threshold:.35});
+  observer.observe(priceTabsShell);
+}else{
+  priceTabVisible=true;
+  priceTabTimer=setTimeout(runPriceTabPreview,1700);
+}
 function focusActivePriceTab(){
   requestAnimationFrame(()=>{
     const active=tabs.querySelector('button.active');
     if(active){
-      const tabRect=active.getBoundingClientRect(),parentRect=tabs.getBoundingClientRect();
-      if(tabRect.right>parentRect.right-6)tabs.scrollLeft+=tabRect.right-parentRect.right+16;
-      else if(tabRect.left<parentRect.left)tabs.scrollLeft+=tabRect.left-parentRect.left-10;
+      const r=active.getBoundingClientRect(),box=tabs.getBoundingClientRect();
+      if(r.right>box.right-6)tabs.scrollLeft+=r.right-box.right+15;
+      else if(r.left<box.left)tabs.scrollLeft+=r.left-box.left-10;
     }
-    updatePriceTabsHint();
+    updatePriceTabsOverflow();
   });
 }
-function nudgePriceTabs(){
-  if(priceTabsNudged||!window.matchMedia('(max-width:700px)').matches)return;
-  if(tabs.scrollWidth<=tabs.clientWidth+12)return;
-  priceTabsNudged=true;
-  if(tabs.scrollLeft>4)return;
-  // Briefly peek at the next category, then return to the first one.
-  const step=Math.min(72,tabs.scrollWidth-tabs.clientWidth);
-  tabs.scrollTo({left:step,behavior:'smooth'});
-  setTimeout(()=>{
-    if(tabs.scrollLeft<=step+18)tabs.scrollTo({left:0,behavior:'smooth'});
-    updatePriceTabsHint();
-  },900);
-}
-if('IntersectionObserver' in window){
-  const pricePeekObserver=new IntersectionObserver(entries=>{
-    if(entries.some(entry=>entry.isIntersecting)){
-      pricePeekObserver.disconnect();setTimeout(nudgePriceTabs,550);
-    }
-  },{threshold:.2});
-  pricePeekObserver.observe(priceTabsShell);
-} else {
-  setTimeout(nudgePriceTabs,1000);
-}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function renderPrices(category){activePrice=category;tabs.innerHTML=Object.entries(prices).map(([id,p])=>`<button type="button" role="tab" aria-selected="${id===category}" class="${id===category?'active':''}" data-tab="${id}">${escapeHtml(p.label)}</button>`).join('');area.innerHTML=prices[category].cards.map(card=>`<div class="price-card ${card.popular?'popular':''}"><h3>${escapeHtml(card.name)}</h3><p>${escapeHtml(card.desc)}</p><ul class="price-list">${card.items.map(([name,price])=>`<li><span>${escapeHtml(name)}</span><b>${escapeHtml(price)}</b></li>`).join('')}</ul><button class="btn btn-primary" type="button" data-service="${escapeHtml(card.service)}">Заказать / уточнить ↗</button></div>`).join('');focusActivePriceTab();}
-tabs.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)renderPrices(b.dataset.tab)});renderPrices('home');focusActivePriceTab();
+function renderPrices(category){activePrice=category;tabs.innerHTML=Object.entries(prices).map(([id,p])=>`<button type="button" role="tab" aria-selected="${id===category}" class="${id===category?'active':''}" data-tab="${id}">${escapeHtml(p.label)}</button>`).join('');area.innerHTML=prices[category].cards.map(card=>`<div class="price-card ${card.popular?'popular':''}"><h3>${escapeHtml(card.name)}</h3><p>${escapeHtml(card.desc)}</p><ul class="price-list">${card.items.map(([name,price])=>`<li><span>${escapeHtml(name)}</span><b>${escapeHtml(price)}</b></li>`).join('')}</ul><button class="btn btn-primary" type="button" data-service="${escapeHtml(card.service)}">Заказать / уточнить ↗</button></div>`).join('');updatePriceTabsOverflow();}
+tabs.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){stopPriceTabPreview();renderPrices(b.dataset.tab);focusActivePriceTab()}});renderPrices('home');
 fetch('/api/prices').then(r=>r.ok?r.json():null).then(data=>{
   if(data&&typeof data==='object'&&!Array.isArray(data)&&data.home){
     Object.keys(prices).forEach(k=>delete prices[k]);
