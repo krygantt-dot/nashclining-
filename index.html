@@ -406,6 +406,51 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
  #customerReviews .review-card,#customerReviews .review-card:hover{padding:18px}
 }
 </style>
+
+<style id="nashAIStyles">
+/* Accessible assistant widget — isolated CSS so main site's cards cannot animate it. */
+#nkAiLaunch{position:fixed;z-index:135;right:max(18px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));display:none;align-items:center;gap:10px;
+ background:linear-gradient(125deg,#0860e9,#30a5f2);color:white;border:1px solid #99cfff7d;border-radius:999px;
+ padding:12px 17px;box-shadow:0 11px 38px #0953b45c;font:850 12px/1.2 Manrope,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#nkAiLaunch:hover{box-shadow:0 13px 43px #0953b477}
+#nkAiLaunch .ai-launch-icon{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#ffffff2b;font-size:17px}
+#nkAiLaunch.ai-ready{display:flex}
+#nkAiPanel{position:fixed;z-index:142;right:max(16px,env(safe-area-inset-right));bottom:max(83px,env(safe-area-inset-bottom));display:none;
+ flex-direction:column;box-sizing:border-box;width:min(404px,calc(100vw - 25px));height:min(570px,calc(100dvh - 105px));
+ min-width:0;max-width:100vw;overflow:hidden;background:#fff;border:1px solid #dbe9fe;border-radius:24px;box-shadow:0 28px 90px #17489b57;
+ font:13px/1.5 Manrope,system-ui,sans-serif;color:#244369}
+#nkAiPanel.ai-open{display:flex}
+#nkAiPanel *{box-sizing:border-box}
+#nkAiHeader{display:flex;align-items:center;gap:11px;padding:16px;background:linear-gradient(120deg,#0860dd,#318bf5);color:#fff;flex:none}
+#nkAiHeader .ai-badge{width:38px;height:38px;border-radius:13px;background:#ffffff30;display:grid;place-items:center;font-size:22px}
+#nkAiHeader strong{font-size:14px;display:block;line-height:1.2}
+#nkAiHeader small{font-size:10px;opacity:.9;display:block;margin-top:4px}
+#nkAiClose{margin-left:auto;width:35px;height:35px;border-radius:11px;color:#fff;background:#ffffff24;border:0;font-size:23px;cursor:pointer}
+#nkAiMessages{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px 14px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(#f9fcff,#eef6ff);scrollbar-width:thin}
+#nkAiMessages .ai-line{display:flex;flex-direction:column;gap:3px;max-width:91%;align-self:flex-start}
+#nkAiMessages .ai-line.ai-user{align-self:flex-end}
+#nkAiMessages .ai-content{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;padding:12px 14px;border:1px solid #e0ebf9;border-radius:16px 16px 16px 4px;background:white;box-shadow:0 4px 17px #1559aa0b;color:#28476c;font-size:12px;line-height:1.65}
+#nkAiMessages .ai-user .ai-content{background:#1365de;border-color:#1365de;color:white;border-radius:16px 16px 4px 16px}
+#nkAiMessages .ai-author{font-size:10px;font-weight:850;color:#7f94b1;margin:0 6px}
+#nkAiMessages .ai-user .ai-author{text-align:right}
+#nkAiActions{padding:9px 13px 0;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;flex:none;background:white}
+#nkAiActions::-webkit-scrollbar{display:none}
+#nkAiActions button{flex:none;border:1px solid #d9e9ff;background:#f6faff;color:#2363b8;padding:7px 10px;border-radius:999px;cursor:pointer;font-size:10px;font-weight:760;white-space:nowrap}
+#nkAiActions button:hover{background:#eaf3ff}
+#nkAiOrder{margin:9px 13px 0;width:calc(100% - 26px);border:0;border-radius:12px;padding:10px;color:#fff;background:#126add;cursor:pointer;font-size:12px;font-weight:850;flex:none;box-shadow:0 6px 14px #126add26}
+#nkAiForm{display:flex;align-items:end;gap:8px;padding:10px 12px 5px;flex:none;background:white}
+#nkAiInput{flex:1;min-width:0;max-height:100px;min-height:45px;resize:none;padding:11px 12px;border:1px solid #d5e4f7;border-radius:13px;background:#f9fbff;color:#20436f;font:400 16px/1.35 Manrope,system-ui,sans-serif;outline-color:#428dec}
+#nkAiSend{flex:none;align-self:stretch;background:#166bf0;color:white;border:0;border-radius:12px;padding:0 14px;font-size:12px;font-weight:850;cursor:pointer}
+#nkAiSend:disabled{opacity:.48;cursor:wait}
+#nkAiFoot{font-size:9px;line-height:1.4;text-align:center;color:#849ab5;padding:3px 12px 11px;flex:none;background:white}
+@media(max-width:700px){
+ #nkAiLaunch{right:12px;bottom:calc(83px + env(safe-area-inset-bottom));padding:12px 13px;font-size:11px}
+ #nkAiLaunch .ai-launch-icon{width:24px;height:24px}
+ #nkAiPanel{width:calc(100vw - 16px);height:min(670px,calc(100dvh - 18px));left:8px;right:8px;bottom:8px;max-height:calc(100dvh - 16px);border-radius:20px}
+ #nkAiInput{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){#nkAiPanel *,#nkAiLaunch{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
 <div class="site-bg"><div class="ambient a"></div><div class="ambient b"></div></div>
@@ -452,6 +497,17 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
 </main>
 <div class="mobile-cta"><a href="tel:+375296601441" class="btn call">☎ Позвонить</a><button class="btn btn-primary" data-order>Заказать уборку ↗</button></div>
 <div class="order-backdrop" id="orderBackdrop" role="dialog" aria-modal="true" aria-labelledby="orderTitle" aria-hidden="true"><div class="order-panel"><button class="close" id="closeOrder" type="button" aria-label="Закрыть">×</button><div class="kicker">Связаться с нами</div><h2 id="orderTitle">Расчёт стоимости</h2><p>Оставьте заявку — мы свяжемся с вами для подтверждения времени и стоимости. Если база данных пока недоступна, предложим отправить заявку через WhatsApp.</p><form id="orderForm"><label class="field">Услуга<select id="orderService" required><option>Генеральная уборка квартиры</option><option>Уборка кухни</option><option>Химчистка мебели</option><option>Химчистка матраса</option><option>Химчистка ковра</option><option>Химчистка автомобиля</option><option>Химчистка грузового автомобиля</option><option>Уборка после ремонта</option><option>Дополнительные услуги</option><option>Другая услуга</option></select></label><label class="field">Город<select id="orderCity" required><option>Минск</option><option>Бобруйск</option><option>Солигорск</option><option>Жлобин</option><option>Рогачёв</option><option>Другой город</option></select></label><label class="field">Как к вам обращаться?<input id="orderName" placeholder="Ваше имя" maxlength="60" autocomplete="name" required minlength="2"></label><label class="field">Ваш телефон<input id="orderPhone" placeholder="+375 29 123-45-67" type="tel" autocomplete="tel" required></label><label class="field">Желаемая дата (по возможности)<input id="orderDate" type="date"></label><label class="field">Желаемое время<input id="orderTime" type="time"></label><label class="field">Комментарий<textarea id="orderDetails" placeholder="Например, двухместный диван или 2-комнатная квартира"></textarea></label><label style="font-size:12px;display:flex;align-items:start;gap:8px;line-height:1.6;margin:12px 0"><input type="checkbox" required style="margin-top:4px;accent-color:#1265ed"> <span>Согласен(на) на обработку данных для связи по заявке. <a href="/privacy" target="_blank" rel="noopener" style="color:#085ce7;text-decoration:underline">Подробнее</a></span></label><input type="text" id="orderWebsite" name="website" autocomplete="off" tabindex="-1" style="position:absolute;left:-10000px" aria-hidden="true"><div id="orderResult" role="status" aria-live="polite" style="font-size:12px;margin:8px 0"></div><button class="btn btn-primary order-submit" type="submit">Отправить заявку ↗</button><div class="small-note">Или позвоните: <a style="color:#045bdc;font-weight:800" href="tel:+375296601441">+375 29 660-14-41</a></div></form></div></div>
+
+<button id="nkAiLaunch" type="button" aria-label="Открыть AI-консультанта" aria-expanded="false" aria-controls="nkAiPanel"><span class="ai-launch-icon" aria-hidden="true">✦</span> AI-консультант</button>
+<section id="nkAiPanel" role="dialog" aria-modal="false" aria-labelledby="nkAiHeading" aria-hidden="true">
+  <div id="nkAiHeader"><span class="ai-badge" aria-hidden="true">✦</span><div><strong id="nkAiHeading">Ваш помощник по уборке</strong><small>AI-консультант «Наш Клининг»</small></div><button id="nkAiClose" type="button" aria-label="Закрыть чат">×</button></div>
+  <div id="nkAiMessages" role="log" aria-live="polite" aria-label="Переписка с AI-консультантом"></div>
+  <div id="nkAiActions"><button type="button" data-ai-prompt="Сколько стоит генеральная уборка квартиры?">Цены на уборку</button><button type="button" data-ai-prompt="Хочу почистить диван. Какие есть услуги и цены?">Химчистка дивана</button><button type="button" data-ai-prompt="В каких городах вы работаете?">Города выезда</button></div>
+  <button id="nkAiOrder" type="button">Оформить заявку ↗</button>
+  <form id="nkAiForm" autocomplete="off"><textarea id="nkAiInput" rows="2" maxlength="900" placeholder="Напишите вопрос об уборке…" aria-label="Вопрос AI-консультанту" required></textarea><button id="nkAiSend" type="submit" aria-label="Отправить сообщение">➤</button></form>
+  <div id="nkAiFoot">Вы общаетесь с AI. Не отправляйте сюда телефон и адрес — для заявки есть отдельная форма.</div>
+</section>
+
 <script>
 const PHONE='375296601441';
 const prices={
@@ -837,6 +893,93 @@ fetch('/api/projects').then(r=>r.ok?r.json():[]).then(items=>{
     next+=3;
   },3900);
   setTimeout(()=>{if(!document.hidden)pop(bubbles[4])},1700);
+})();
+
+
+/* AI assistant: only the server talks to OpenAI, never the browser. */
+(function initNashAI(){
+  const launch=document.getElementById('nkAiLaunch'),panel=document.getElementById('nkAiPanel');
+  const close=document.getElementById('nkAiClose'),feed=document.getElementById('nkAiMessages');
+  const form=document.getElementById('nkAiForm'),field=document.getElementById('nkAiInput'),send=document.getElementById('nkAiSend');
+  const suggestions=document.getElementById('nkAiActions'),order=document.getElementById('nkAiOrder');
+  if(!launch||!panel)return;
+  let conversation=[],busy=false;
+  const welcome='Здравствуйте! Я AI-консультант «Наш Клининг». Помогу выбрать уборку или химчистку и сориентирую по цене. Какая услуга вас интересует?';
+  function append(text,kind){
+    const row=document.createElement('div');row.className='ai-line'+(kind==='user'?' ai-user':'');
+    const label=document.createElement('span');label.className='ai-author';label.textContent=kind==='user'?'Вы':'AI-помощник';
+    const message=document.createElement('div');message.className='ai-content';message.textContent=text;
+    row.append(label,message);feed.appendChild(row);feed.scrollTop=feed.scrollHeight;
+    return message;
+  }
+  function isOpen(){return panel.classList.contains('ai-open')}
+  function setOpen(open){
+    panel.classList.toggle('ai-open',open);
+    panel.setAttribute('aria-hidden',String(!open));
+    launch.setAttribute('aria-expanded',String(open));
+    launch.style.display=open?'none':'';
+    if(open){if(!feed.children.length)append(welcome,'assistant');field.focus({preventScroll:true})}
+    else launch.focus({preventScroll:true});
+  }
+  launch.addEventListener('click',()=>setOpen(true));
+  close.addEventListener('click',()=>setOpen(false));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isOpen())setOpen(false)});
+  field.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!busy)form.requestSubmit()}});
+  async function ask(raw){
+    const question=String(raw||'').trim().slice(0,900);
+    if(question.length<2||busy)return;
+    busy=true;send.disabled=true;field.value='';suggestions.hidden=true;
+    const history=conversation.slice(-10);
+    append(question,'user');
+    const pending=append('Подбираю подходящий вариант…','assistant');
+    try{
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),22000);
+      let response;
+      try{
+        response=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({message:question,history}),signal:controller.signal});
+      }finally{clearTimeout(timeout)}
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(data.error||'Сервис временно недоступен. Оставьте заявку через форму.');
+      const answer=String(data.reply||'').trim();
+      if(!answer)throw Error('Ответ не получен. Попробуйте ещё раз.');
+      pending.textContent=answer;
+      conversation.push({role:'user',content:question},{role:'assistant',content:answer});
+      conversation=conversation.slice(-14);
+    }catch(error){
+      pending.textContent=(error.name==='AbortError')?'Время ожидания истекло. Попробуйте позже или оформите заявку.':(error.message||'Не удалось получить ответ.');
+    }finally{
+      busy=false;send.disabled=false;feed.scrollTop=feed.scrollHeight;
+      if(isOpen())field.focus({preventScroll:true});
+    }
+  }
+  form.addEventListener('submit',e=>{e.preventDefault();void ask(field.value)});
+  suggestions.addEventListener('click',e=>{const button=e.target.closest('[data-ai-prompt]');if(button)void ask(button.dataset.aiPrompt)});
+  order.addEventListener('click',()=>{
+    const text=conversation.filter(x=>x.role==='user').map(x=>x.content).join(' ').toLowerCase();
+    const select=document.getElementById('orderService');
+    let suggested=null;
+    if(/авто|машин|салон/.test(text))suggested='Химчистка автомобиля';
+    else if(/ремонт/.test(text))suggested='Уборка после ремонта';
+    else if(/матрас/.test(text))suggested='Химчистка матраса';
+    else if(/ков[её]р|ковр/.test(text))suggested='Химчистка ковра';
+    else if(/диван|кресл|мебел|стул/.test(text))suggested='Химчистка мебели';
+    else if(/кухн/.test(text))suggested='Уборка кухни';
+    else if(/квартир|дом|генеральн|уборк/.test(text))suggested='Генеральная уборка квартиры';
+    if(suggested&&select&&[...select.options].some(x=>x.value===suggested))select.value=suggested;
+    const city=document.getElementById('orderCity');
+    for(const name of ['Минск','Бобруйск','Солигорск','Жлобин','Рогачёв']){
+      if(text.includes(name.toLowerCase())&&city)city.value=name;
+    }
+    setOpen(false);
+    if(typeof openOrder==='function')openOrder(suggested||undefined);
+    else document.querySelector('[data-order]')?.click();
+  });
+  // The assistant is hidden until the API is configured on Render; no broken chat for visitors.
+  fetch('/api/ai/status',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(result=>{
+    if(result?.enabled)launch.classList.add('ai-ready');
+  }).catch(()=>{});
 })();
 
 </script>
