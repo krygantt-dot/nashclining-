@@ -102,6 +102,8 @@ async function telegram(message) {
   }catch(e){console.error('Telegram unavailable:',e.message);}
 }
 app.get('/health',(req,res)=>res.json({ok:true,db:databaseReady?'ready':'not-configured'}));
+// Browser key is intentionally public. Restrict it in Google Cloud to this domain and Maps JavaScript API.
+app.get('/api/map-config',(req,res)=>{res.set('Cache-Control','no-store');res.json({key:process.env.GOOGLE_MAPS_BROWSER_KEY||null});});
 app.get('/api/prices',guard(async(req,res)=>{
   if(!databaseReady)return res.json(defaultPrices);
   const result=await db.query("SELECT value FROM site_settings WHERE key='prices'");
