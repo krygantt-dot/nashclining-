@@ -197,10 +197,31 @@ function telegramWhatsAppNumber(rawPhone){
   if(raw.startsWith('+')&&/^[1-9]\d{7,14}$/.test(digits))return digits;
   return null;
 }
+function bookingReplyDraft(b){
+  const name=String(b.name||'').trim();
+  const service=String(b.service||'').trim();
+  const city=String(b.city||'').trim();
+  const date=String(b.preferred_date_text||'').trim();
+  const time=String(b.preferred_time||'').trim();
+  const hello='Здравствуйте'+(name?', '+name:'')+'! Это «Наш Клининг».';
+  const selected='Спасибо за обращение по услуге «'+service+'»'+(city?' ('+city+')':'')+'.';
+  let schedule;
+  if(date&&time){
+    schedule='Вы указали '+date+' в '+time+'. Подскажите, эта дата и время ещё подходят вам?';
+  }else if(date){
+    schedule='Вы указали дату '+date+'. Она ещё актуальна? На какое время вам будет удобно?';
+  }else if(time){
+    schedule='Вы указали удобное время — '+time+'. Подскажите, на какую дату лучше запланировать работу?';
+  }else{
+    schedule='Подскажите, пожалуйста, на какую дату и время вам было бы удобно запланировать работу?';
+  }
+  return [hello,selected,schedule,
+    'Если есть дополнительные пожелания, напишите нам. Уточним детали, подтвердим время и стоимость.'].join(' ');
+}
 function telegramBookingKeyboard(b){
   const number=telegramWhatsAppNumber(b.phone);
   if(!number)return undefined; // Cannot build reliable chat links without an international phone number.
-  const greeting='Здравствуйте, '+String(b.name||'').trim()+'! Это «Наш Клининг». Пишем по вашей заявке №'+b.id+'. Когда вам будет удобно обсудить детали?';
+  const greeting=bookingReplyDraft(b);
   return {inline_keyboard:[[
     // Official Telegram phone-number link. Works only when user privacy settings permit phone lookup.
     {text:'✈️ Написать в Telegram',
