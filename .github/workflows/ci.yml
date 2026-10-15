@@ -1,0 +1,31 @@
+name: Проверка сайта
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --omit=dev
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Check HTTP endpoints without database
+        run: |
+          npm start > /tmp/nash-log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:10000/health > /tmp/nash-health.json; then break; fi
+            sleep 1
+          done
+          grep -q '"ok":true' /tmp/nash-health.json
+          curl -fsS http://127.0.0.1:10000/ | grep -q 'Наш Клининг'
+          curl -fsS http://127.0.0.1:10000/admin | grep -q 'Админ-панель'
+          curl -fsS http://127.0.0.1:10000/api/prices | grep -q 'furniture'
