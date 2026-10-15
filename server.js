@@ -324,6 +324,18 @@ async function tgBusinessMethod(name,payload={}){
     return data.result;
   }finally{clearTimeout(timer)}
 }
+// Refresh Telegram's current server-side permission state (not the previous webhook snapshot).
+async function refreshBusinessRights(connectionId){
+  const bc=await tgBusinessMethod('getBusinessConnection',{business_connection_id:connectionId});
+  if(!bc||bc.id!==connectionId)throw Error('Telegram did not return this business connection');
+  const canReply=Boolean(bc.rights?.can_reply??bc.can_reply??false);
+  const enabled=bc.is_enabled!==false;
+  await db.query(
+    'UPDATE tg_business_connections SET can_reply=$2,enabled=$3,updated_at=now() WHERE id=$1',
+    [connectionId,canReply,enabled]
+  );
+  return {canReply,enabled};
+}
 async function businessAISetting(){
   const r=await db.query("SELECT value FROM site_settings WHERE key='tg_business_enabled'");
   return r.rows[0]?.value===true;
@@ -536,13 +548,46 @@ app.post('/api/telegram/business-webhook',guard(async(req,res)=>{
   void flushBusinessJobs();
 }));
 app.get('/api/admin/business-ai/status',auth,needDB,guard(async(req,res)=>{
-  const connections=await db.query("SELECT id,owner_id,approved,enabled,can_reply,updated_at FROM tg_business_connections ORDER BY updated_at DESC LIMIT 15");
-  const chats=await db.query("SELECT connection_id,chat_id,display_name,paused,escalated,last_inbound,last_ai_sent,last_error FROM tg_business_chats ORDER BY last_inbound DESC NULLS LAST LIMIT 50");
-  const setting=await businessAISetting();
+  // Use live Telegram permissions, not just the last business_connection webhook event.
+  const initial=await db.query("SELECT id FROM tg_business_connections ORDER BY updated_at DESC LIMIT 8");
+  const permissionErrors=[];
+  if(TELEGRAM_TOKEN&&initial.rows.length){
+    await Promise.all(initial.rows.map(async row=>{
+      try{await refreshBusinessRights(row.id)}
+      catch(e){permissionErrors.push('Не удалось проверить Telegram-права: '+String(e.message||e).slice(0,130))}
+    }));
+  }
+  const [connections,chats,jobs,setting]=await Promise.all([
+    db.query("SELECT id,owner_id,approved,enabled,can_reply,updated_at FROM tg_business_connections ORDER BY updated_at DESC LIMIT 15"),
+    db.query("SELECT connection_id,chat_id,display_name,paused,escalated,last_inbound,last_ai_sent,last_error FROM tg_business_chats ORDER BY last_inbound DESC NULLS LAST LIMIT 50"),
+    db.query(
+      "SELECT count(*) FILTER(WHERE status='pending' OR status='sending')::int AS pending,"+
+      " count(*) FILTER(WHERE status='sent')::int AS sent,"+
+      " count(*) FILTER(WHERE status='skipped')::int AS skipped,"+
+      " count(*) FILTER(WHERE status='failed')::int AS failed,"+
+      " max(received_at) AS last_received FROM tg_business_jobs"
+    ),
+    businessAISetting()
+  ]);
+  const failures=await db.query("SELECT last_error FROM tg_business_jobs WHERE last_error IS NOT NULL ORDER BY received_at DESC LIMIT 1");
+  let webhook={configured:false,pending:0,error:null};
+  if(TELEGRAM_TOKEN){
+    try{
+      const info=await tgBusinessMethod('getWebhookInfo');
+      webhook={
+        configured:info?.url===TG_BUSINESS_WEBHOOK,
+        pending:Number(info?.pending_update_count)||0,
+        error:info?.last_error_message?String(info.last_error_message).slice(0,230):null,
+        allowedUpdates:info?.allowed_updates||[]
+      };
+    }catch(e){webhook.error='Не удалось проверить webhook: '+String(e.message||e).slice(0,130)}
+  }
   res.set('Cache-Control','no-store').json({
     enabled:setting,openaiConfigured:Boolean(process.env.OPENAI_API_KEY),
     telegramConfigured:Boolean(TELEGRAM_TOKEN),
     connections:connections.rows,chats:chats.rows,
+    diagnostics:{webhook,queue:jobs.rows[0],lastError:failures.rows[0]?.last_error||null,
+      permissionErrors:permissionErrors.slice(0,3)},
     endpoint:TG_BUSINESS_WEBHOOK
   });
 }));
