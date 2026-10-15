@@ -116,40 +116,98 @@
 </style>
 
 <style id="motionFixStyles">
-/* Always clip the automatic carousel: desktop browsers must not display a scroll bar. */
-.ticker{overflow:hidden!important;overflow-x:clip!important;overflow-y:clip!important;scrollbar-width:none!important}
-.ticker::-webkit-scrollbar{display:none!important}
-.ticker .ticker-track{animation:marquee 110s linear infinite!important;animation-play-state:running!important;will-change:transform}
-@media(max-width:600px){.ticker .ticker-track{animation-duration:135s!important}}
-.motion-toggle{
-  color:#1765d0;font-size:11px;font-weight:800;padding:8px 11px;border-radius:11px;
-  border:1px solid #d6e9ff;background:rgba(255,255,255,.88);box-shadow:0 5px 15px #184e9c10;
-  white-space:nowrap;transition:background .2s,transform .2s;
-}
-.motion-toggle:hover{background:#eaf5ff;transform:translateY(-1px)}
-.motion-toggle:focus-visible{outline:3px solid #5896ff;outline-offset:2px}
-html.motion-paused .ticker .ticker-track,
-html.motion-paused .hero-art .bubble{animation:none!important}
-html.motion-on .ticker .ticker-track{
+/* Advertising ticker runs immediately. No scrollbars, no hover pause. */
+.ticker {overflow:hidden!important;overflow-x:clip!important;overflow-y:clip!important;scrollbar-width:none!important}
+.ticker::-webkit-scrollbar {display:none!important}
+html.motion-on .ticker .ticker-track {
   animation:marquee 110s linear infinite!important;
   animation-play-state:running!important;
+  will-change:transform;
 }
-html.motion-on .hero-art .bubble.one{animation:orbitBubble 22s linear infinite!important}
-html.motion-on .hero-art .bubble.two{animation:orbitBubble 27s linear -9s infinite!important}
-html.motion-on .hero-art .bubble.three{
-  animation:orbitBubble 20s linear -6s infinite,bubblePop 20s linear -6s infinite!important
+@media (max-width:600px) {
+  html.motion-on .ticker .ticker-track {animation-duration:135s!important}
 }
-/* These rules deliberately override reduced-motion only after the visitor opts in. */
-@media(max-width:600px){
-  html.motion-on .ticker .ticker-track{animation-duration:135s!important}
+/* The bubble layer covers the photograph but does not intercept clicks outside visible bubbles. */
+.hero-art .bubble-field {position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
+.hero-art .bubble-field .bubble {
+  position:absolute;
+  top:0;left:0;right:auto;bottom:auto;
+  display:block;appearance:none;-webkit-appearance:none;
+  padding:0;margin:0;border:0;border-radius:50%;
+  width:var(--size,22px);height:var(--size,22px);
+  background:transparent;box-shadow:none;
+  opacity:1;
+  transform:translate(-50%,-50%);
+  cursor:pointer;touch-action:manipulation;
+  pointer-events:auto!important;
 }
-@media(prefers-reduced-motion:reduce){
-  html.motion-on .ticker .ticker-track{animation:marquee 110s linear infinite!important}
-  html.motion-on .hero-art .bubble.one{animation:orbitBubble 22s linear infinite!important}
-  html.motion-on .hero-art .bubble.two{animation:orbitBubble 27s linear -9s infinite!important}
-  html.motion-on .hero-art .bubble.three{animation:orbitBubble 20s linear -6s infinite,bubblePop 20s linear -6s infinite!important}
-  html.motion-on .ticker .ticker-track,
-  html.motion-on .hero-art .bubble{animation-play-state:running!important}
+html.motion-on .hero-art .bubble-field .bubble {
+  animation:orbitBubble var(--travel,30s) linear var(--offset,0s) infinite!important;
+  animation-play-state:running!important;
+}
+.hero-art .bubble-field .bubble:focus-visible {outline:3px solid #0779ff;outline-offset:5px}
+.hero-art .bubble-field .bubble:active {cursor:crosshair}
+.bubble-field .bubble-core {
+  display:block;position:absolute;inset:0;
+  border:1px solid rgba(255,255,255,.92);border-radius:50%;
+  background:
+    radial-gradient(circle at 28% 25%,rgba(255,255,255,.98) 0 9%,rgba(255,255,255,.25) 13%,transparent 29%),
+    radial-gradient(circle at 72% 74%,rgba(47,168,255,.65),transparent 60%),
+    radial-gradient(circle at 35% 40%,rgba(255,255,255,.15),rgba(210,240,255,.09));
+  box-shadow:inset -3px -5px 7px #8dcbff61,0 0 11px #46a9ff6e,0 3px 14px #3882b122;
+  pointer-events:none;
+}
+.bubble-field .bubble:hover:not(.popping) .bubble-core {filter:brightness(1.22);box-shadow:inset -3px -5px 7px #8dcbff61,0 0 22px #3daaff9e}
+.bubble-field .bubble.popping {pointer-events:none!important}
+.bubble-field .bubble.popping .bubble-core {
+  animation:bubbleBurst .55s cubic-bezier(.12,.65,.2,1) both!important;
+}
+.bubble-field .bubble-splash {
+  position:absolute;inset:-75%;
+  border-radius:50%;
+  opacity:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 9%,#81d3ff 0 2px,transparent 3px),
+    radial-gradient(circle at 83% 22%,#c1edff 0 2px,transparent 3px),
+    radial-gradient(circle at 92% 56%,#4eaff5 0 3px,transparent 4px),
+    radial-gradient(circle at 72% 88%,#d9f5ff 0 2px,transparent 3px),
+    radial-gradient(circle at 20% 80%,#58bfff 0 3px,transparent 4px),
+    radial-gradient(circle at 8% 38%,#c7f3ff 0 2px,transparent 3px);
+}
+.bubble-field .bubble.popping .bubble-splash {
+  animation:splashParticles .75s ease-out both!important;
+}
+/* One gentle trip around the hero photo; different negative delays distribute the bubbles. */
+@keyframes orbitBubble {
+  0%,100% {left:-2%;top:24%;transform:translate(-50%,-50%)}
+  15% {left:16%;top:-2%;transform:translate(-50%,-50%)}
+  33% {left:80%;top:-2%;transform:translate(-50%,-50%)}
+  46% {left:101%;top:24%;transform:translate(-50%,-50%)}
+  58% {left:101%;top:83%;transform:translate(-50%,-50%)}
+  73% {left:74%;top:101%;transform:translate(-50%,-50%)}
+  87% {left:16%;top:101%;transform:translate(-50%,-50%)}
+  94% {left:-2%;top:76%;transform:translate(-50%,-50%)}
+}
+@keyframes bubbleBurst {
+  0% {opacity:1;transform:scale(1)}
+  27% {opacity:1;transform:scale(1.35)}
+  45% {opacity:.85;transform:scale(1.6)}
+  100% {opacity:0;transform:scale(2.25)}
+}
+@keyframes splashParticles {
+  0%,15% {opacity:0;transform:scale(.24) rotate(-12deg)}
+  35% {opacity:1;transform:scale(.56) rotate(0deg)}
+  100% {opacity:0;transform:scale(1.35) rotate(18deg)}
+}
+/* Explicit opt-in to animation on this site overrides old global reduced-motion rules. */
+@media (prefers-reduced-motion:reduce) {
+  html.motion-on .ticker .ticker-track {animation:marquee 110s linear infinite!important}
+  html.motion-on .hero-art .bubble-field .bubble {
+    animation:orbitBubble var(--travel,30s) linear var(--offset,0s) infinite!important;
+  }
+  .bubble-field .bubble.popping .bubble-core {animation:bubbleBurst .55s ease-out both!important}
+  .bubble-field .bubble.popping .bubble-splash {animation:splashParticles .75s ease-out both!important}
 }
 </style>
 </head>
@@ -157,7 +215,7 @@ html.motion-on .hero-art .bubble.three{
 <div class="site-bg"><div class="ambient a"></div><div class="ambient b"></div></div>
 <header class="nav-shell"><nav class="nav" aria-label="Главное меню"><a class="brand" href="#top" aria-label="Наш Клининг, на главную"><img src="assets/logo.png" alt="Логотип Наш Клининг"><div><strong>НАШ КЛИНИНГ</strong><span>забота о чистоте</span></div></a><div class="links"><a href="#services">Услуги</a><a href="#prices">Цены</a><a href="#advantages">Преимущества</a><a href="#coverage">Где работаем</a><a href="#contacts">Контакты</a></div><div class="nav-actions"><a class="btn btn-outline" href="tel:+375296601441">☎ Позвонить</a><button class="btn btn-primary" data-order>Заказать уборку ↗</button></div><button class="mobile-menu" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Открыть меню">☰</button></nav><div class="mobile-links" id="mobileMenu"><a href="#services">Услуги</a><a href="#prices">Цены</a><a href="#advantages">Преимущества</a><a href="#coverage">Где работаем</a><a href="#contacts">Контакты</a></div></header>
 <main id="top">
-<section class="hero"><div class="container hero-grid"><div class="hero-content"><div class="eyebrow"><i></i> Чистота, которую хочется чувствовать</div><h1>Профессиональный <span class="blue-text">клининг</span> для дома, авто и бизнеса</h1><p>Берём заботы о чистоте на себя. Генеральная уборка, химчистка мягкой мебели и салона автомобиля — аккуратно, профессионально и с вниманием к деталям.</p><div class="hero-actions"><button class="btn btn-primary btn-lg" data-order><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2m-8 4h2m4 0h2"/></svg>Рассчитать стоимость ↗</button><a class="btn btn-outline btn-lg" target="_blank" rel="noopener" href="https://wa.me/375296601441?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%B0%D1%82%D1%8C%20%D1%83%D0%B1%D0%BE%D1%80%D0%BA%D1%83.">✳ WhatsApp</a></div><div class="trust"><span><b>✧</b> Гипоаллергенная химия</span><span><b>♢</b> Профессиональная техника</span><span><b>◷</b> Гибкий график</span><button class="motion-toggle" type="button" id="motionToggle" aria-pressed="false" title="Включить или отключить движение на сайте">▶ Включить анимации</button></div></div><div class="hero-art"><img class="hero-photo" loading="eager" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=85" alt="Светлая уютная гостиная с диваном"><span class="bubble one"></span><span class="bubble two"></span><span class="bubble three"></span><div class="hero-label"><span>✨</span> Свежесть в каждой детали</div><div class="float-card"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=250&q=80" alt="Уютный интерьер"><div><strong>Время для важного</strong><small>Об остальном позаботимся мы</small></div></div></div></div></section>
+<section class="hero"><div class="container hero-grid"><div class="hero-content"><div class="eyebrow"><i></i> Чистота, которую хочется чувствовать</div><h1>Профессиональный <span class="blue-text">клининг</span> для дома, авто и бизнеса</h1><p>Берём заботы о чистоте на себя. Генеральная уборка, химчистка мягкой мебели и салона автомобиля — аккуратно, профессионально и с вниманием к деталям.</p><div class="hero-actions"><button class="btn btn-primary btn-lg" data-order><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2m-8 4h2m4 0h2"/></svg>Рассчитать стоимость ↗</button><a class="btn btn-outline btn-lg" target="_blank" rel="noopener" href="https://wa.me/375296601441?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%B0%D1%82%D1%8C%20%D1%83%D0%B1%D0%BE%D1%80%D0%BA%D1%83.">✳ WhatsApp</a></div><div class="trust"><span><b>✧</b> Гипоаллергенная химия</span><span><b>♢</b> Профессиональная техника</span><span><b>◷</b> Гибкий график</span></div></div><div class="hero-art"><img class="hero-photo" loading="eager" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=85" alt="Светлая уютная гостиная с диваном"><div class="bubble-field" id="bubbleField" aria-label="Лопающиеся пузырьки вокруг фотографии"></div><div class="hero-label"><span>✨</span> Свежесть в каждой детали</div><div class="float-card"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=250&q=80" alt="Уютный интерьер"><div><strong>Время для важного</strong><small>Об остальном позаботимся мы</small></div></div></div></div></section>
 <div class="ticker" aria-hidden="true"><div class="ticker-track"><div class="ticker-group"><span>Генеральная уборка</span><span>Химчистка диванов</span><span>Химчистка автомобилей</span><span>Уборка после ремонта</span><span>Чистота без хлопот</span><span>Химчистка ковров</span><span>Уборка квартир</span><span>Уход за мебелью</span><span>Генеральная уборка</span><span>Химчистка диванов</span><span>Химчистка автомобилей</span><span>Уборка после ремонта</span><span>Чистота без хлопот</span><span>Химчистка ковров</span><span>Уборка квартир</span><span>Уход за мебелью</span></div><div class="ticker-group"><span>Генеральная уборка</span><span>Химчистка диванов</span><span>Химчистка автомобилей</span><span>Уборка после ремонта</span><span>Чистота без хлопот</span><span>Химчистка ковров</span><span>Уборка квартир</span><span>Уход за мебелью</span><span>Генеральная уборка</span><span>Химчистка диванов</span><span>Химчистка автомобилей</span><span>Уборка после ремонта</span><span>Чистота без хлопот</span><span>Химчистка ковров</span><span>Уборка квартир</span><span>Уход за мебелью</span></div></div></div>
 <section class="services" id="services"><div class="container"><div class="section-head reveal"><div><div class="kicker">Что мы делаем</div><h2 class="section-title">Чистота для <span class="blue-text">всего важного</span></h2><p class="section-description">Подбираем подходящее решение для дома, машины и рабочих пространств.</p></div><a class="btn btn-outline" href="#prices">Посмотреть цены ↗</a></div><div class="services-grid" id="serviceGrid">
 <article class="service reveal"><div class="photo-wrap"><img loading="lazy" src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=700&q=80" alt="Чистая квартира"><span class="service-icon">⌂</span></div><div class="service-body"><h3>Уборка квартир и домов</h3><p>Поддерживающая, генеральная, после ремонта.</p><button data-service="Генеральная уборка квартиры">Узнать стоимость →</button></div></article>
@@ -311,27 +369,49 @@ fetch('/api/projects').then(r=>r.ok?r.json():[]).then(items=>{
   section.style.display='block';
 }).catch(()=>{});
 
-// Controls animations even when Windows or the browser requests reduced motion.
-(function setupMotionPreferences(){
-  const button=document.getElementById('motionToggle');
-  if(!button)return;
-  const systemPrefersLessMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let stored=null;
-  try{stored=localStorage.getItem('nashKliningMotion')}catch{}
-  let enabled=stored==='on'||(stored!=='off'&&!systemPrefersLessMotion);
-  function apply(){
-    document.documentElement.classList.toggle('motion-on',enabled);
-    document.documentElement.classList.toggle('motion-paused',!enabled);
-    button.textContent=enabled?'⏸ Остановить анимации':'▶ Включить анимации';
-    button.setAttribute('aria-pressed',String(enabled));
-    button.title=enabled?'Остановить движение пузырьков и строки':'Включить движение пузырьков и строки';
+// Animations are on automatically; clickable bubbles reappear after popping.
+(function initInteractiveBubbles(){
+  document.documentElement.classList.remove('motion-paused');
+  document.documentElement.classList.add('motion-on');
+  const field=document.getElementById('bubbleField');
+  if(!field)return;
+  const sizes=[38,24,15,31,19,27,13,33,21,16,29,12,25,18];
+  const bubbles=[];
+  const popTimers=new WeakMap();
+  function pop(bubble){
+    if(!bubble||bubble.classList.contains('popping'))return;
+    bubble.classList.add('popping');
+    bubble.setAttribute('aria-label','Пузырёк лопнул');
+    const existing=popTimers.get(bubble);if(existing)clearTimeout(existing);
+    const timer=setTimeout(()=>{
+      bubble.classList.remove('popping');
+      bubble.setAttribute('aria-label','Лопнуть пузырёк');
+      popTimers.delete(bubble);
+    },1050);
+    popTimers.set(bubble,timer);
   }
-  button.addEventListener('click',()=>{
-    enabled=!enabled;
-    try{localStorage.setItem('nashKliningMotion',enabled?'on':'off')}catch{}
-    apply();
+  sizes.forEach((size,i)=>{
+    const bubble=document.createElement('button');
+    bubble.type='button';
+    bubble.className='bubble interactive-bubble';
+    bubble.style.setProperty('--size',size+'px');
+    bubble.style.setProperty('--travel',(25+(i%5)*3)+'s');
+    bubble.style.setProperty('--offset',(-i*3.3)+'s');
+    bubble.setAttribute('aria-label','Лопнуть пузырёк');
+    bubble.setAttribute('title','Нажми, чтобы лопнуть пузырёк');
+    bubble.innerHTML='<span class="bubble-core" aria-hidden="true"></span><span class="bubble-splash" aria-hidden="true"></span>';
+    bubble.addEventListener('click',()=>pop(bubble));
+    field.appendChild(bubble);
+    bubbles.push(bubble);
   });
-  apply();
+  // A gentle visible burst every few seconds, even without user interaction.
+  let next=0;
+  setInterval(()=>{
+    if(document.hidden||!bubbles.length)return;
+    pop(bubbles[next%bubbles.length]);
+    next+=3;
+  },3900);
+  setTimeout(()=>{if(!document.hidden)pop(bubbles[4])},1700);
 })();
 
 </script>
