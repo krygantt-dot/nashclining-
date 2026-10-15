@@ -15,8 +15,6 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         sync: false
-      - key: GOOGLE_MAPS_BROWSER_KEY
-        sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
