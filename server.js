@@ -42,6 +42,9 @@ async function initialize(){
       await db.query("CREATE TABLE IF NOT EXISTS bookings (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), name VARCHAR(90) NOT NULL, phone VARCHAR(40) NOT NULL, service VARCHAR(180) NOT NULL, city VARCHAR(90) NOT NULL, preferred_date DATE, preferred_time VARCHAR(30), details VARCHAR(2000) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'new')");
       await db.query("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
       await db.query("CREATE TABLE IF NOT EXISTS projects (id BIGSERIAL PRIMARY KEY, title VARCHAR(120) NOT NULL, category VARCHAR(100) NOT NULL, description VARCHAR(500) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), before_image BYTEA NOT NULL, before_type VARCHAR(24) NOT NULL, after_image BYTEA NOT NULL, after_type VARCHAR(24) NOT NULL)");
+      // Hashed login sessions live in PostgreSQL, not process memory: survives Render restarts.
+      await db.query("CREATE TABLE IF NOT EXISTS admin_sessions (token_hash CHAR(64) PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), expires_at TIMESTAMPTZ NOT NULL)");
+      await db.query("CREATE INDEX IF NOT EXISTS admin_sessions_expiry_idx ON admin_sessions(expires_at)");
       await db.query("CREATE TABLE IF NOT EXISTS reviews (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), author VARCHAR(90) NOT NULL, service VARCHAR(130) NOT NULL, rating SMALLINT NOT NULL CHECK(rating BETWEEN 1 AND 5), body VARCHAR(1000) NOT NULL, is_demo BOOLEAN NOT NULL DEFAULT false, is_published BOOLEAN NOT NULL DEFAULT true, avatar_image BYTEA, avatar_type VARCHAR(24))");
       await db.query("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS avatar_url TEXT");
       await db.query("CREATE INDEX IF NOT EXISTS reviews_published_recent_idx ON reviews(is_published,created_at DESC)");
@@ -73,6 +76,11 @@ async function initialize(){
 }
 void initialize();
 if(db){
+  // Periodic cleanup of expired hashed session records.
+  const purgeTimer=setInterval(()=>{
+    if(databaseReady)db.query('DELETE FROM admin_sessions WHERE expires_at<=now()').catch(err=>console.error('Session cleanup:',err.message));
+  },12*60*60*1000);
+  purgeTimer.unref?.();
   const checkTimer=setInterval(async()=>{
     if(!databaseReady){await initialize();return;}
     try{await db.query('SELECT 1')}
@@ -85,7 +93,6 @@ async function needDB(req,res,next){
   if(!db||!databaseReady)return res.status(503).json({error:'База данных временно недоступна. Напишите в WhatsApp или попробуйте позже.'});
   next();
 }
-const sessions = new Map();
 const failed = new Map();
 function rateLimit(key,max,windowMs) {
   return (req,res,next) => {
@@ -99,24 +106,40 @@ function rateLimit(key,max,windowMs) {
 }
 const loginLimit=rateLimit('login',12,15*60*1000);
 const leadLimit=rateLimit('lead',6,60*60*1000);
+const ADMIN_SESSION_DAYS=30;
+const ADMIN_SESSION_MS=ADMIN_SESSION_DAYS*24*60*60*1000;
 function safeString(value,max=200){return typeof value==='string'?value.trim().slice(0,max):'';}
 function equal(a,b){
   const x=crypto.createHash('sha256').update(String(a)).digest();
   const y=crypto.createHash('sha256').update(String(b)).digest();
   return crypto.timingSafeEqual(x,y);
 }
-function session(req) {
-  const match=(req.headers.cookie||'').match(/(?:^|;\s*)nk_sid=([a-f0-9]{64})(?:;|$)/);
-  if(!match)return null;
-  const record=sessions.get(match[1]);
-  if(!record)return null;
-  if(record.expires<Date.now()){sessions.delete(match[1]);return null;}
-  return record;
+function getSessionToken(req){
+  return (req.headers.cookie||'').match(/(?:^|;\s*)nk_sid=([a-f0-9]{64})(?:;|$)/)?.[1]||null;
 }
-function auth(req,res,next){
-  if(!ADMIN_PASSWORD)return res.status(503).json({error:'Админ-панель ещё не настроена: установите ADMIN_PASSWORD в Render.'});
-  if(!session(req))return res.status(401).json({error:'Требуется вход в админ-панель'});
-  next();
+function sessionHash(token){
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+function sessionCookieSettings(req){
+  return {httpOnly:true,secure:process.env.NODE_ENV==='production'||req.secure,
+    sameSite:'lax',path:'/'};
+}
+async function auth(req,res,next){
+  if(!ADMIN_PASSWORD||ADMIN_PASSWORD.length<12){
+    return res.status(503).json({error:'Админ-панель не настроена: задайте ADMIN_PASSWORD в Render.'});
+  }
+  const token=getSessionToken(req);
+  if(!token)return res.status(401).json({error:'Требуется вход в админ-панель'});
+  try{
+    if(!databaseReady)await initialize();
+    if(!databaseReady)return res.status(503).json({error:'Нет соединения с базой. Попробуйте позже.'});
+    const r=await db.query('SELECT 1 FROM admin_sessions WHERE token_hash=$1 AND expires_at>now() LIMIT 1',[sessionHash(token)]);
+    if(!r.rows.length){
+      res.clearCookie('nk_sid',sessionCookieSettings(req));
+      return res.status(401).json({error:'Срок входа истёк. Войдите ещё раз.'});
+    }
+    next();
+  }catch(err){next(err)}
 }
 function checkOrigin(req,res,next) {
   if(['POST','PUT','PATCH','DELETE'].includes(req.method)&&req.path.startsWith('/api/admin/')) {
@@ -185,21 +208,26 @@ app.post('/api/bookings',leadLimit,needDB,guard(async(req,res)=>{
   res.status(201).json({ok:true,id:r.rows[0].id,message:'Заявка принята. Мы свяжемся с вами для подтверждения.'});
   void telegram('🧼 Новая заявка #'+r.rows[0].id+'\nУслуга: '+s+'\nКлиент: '+n+'\nТелефон: '+p+'\nГород: '+c+'\nДата: '+(date||'не выбрана')+' '+time+'\nКомментарий: '+note);
 }));
-app.post('/api/admin/login',loginLimit,(req,res)=>{
+app.post('/api/admin/login',loginLimit,guard(async(req,res)=>{
   if(!ADMIN_PASSWORD||ADMIN_PASSWORD.length<12)return res.status(503).json({error:'Задайте ADMIN_PASSWORD длиной от 12 символов в Render.'});
   if(!equal(safeString(req.body?.username,100),ADMIN_USER)||!equal(String(req.body?.password||''),ADMIN_PASSWORD))
     return res.status(401).json({error:'Неверный логин или пароль'});
+  if(!databaseReady)await initialize();
+  if(!databaseReady)return res.status(503).json({error:'База данных пока недоступна. Попробуйте позже.'});
   const token=crypto.randomBytes(32).toString('hex');
-  sessions.set(token,{expires:Date.now()+8*60*60*1000});
-  res.cookie('nk_sid',token,{httpOnly:true,secure:req.secure,sameSite:'lax',path:'/',maxAge:8*60*60*1000});
-  res.json({ok:true});
-});
-app.post('/api/admin/logout',auth,(req,res)=>{
-  const token=(req.headers.cookie||'').match(/(?:^|;\s*)nk_sid=([a-f0-9]{64})/);
-  if(token)sessions.delete(token[1]);
-  res.clearCookie('nk_sid',{path:'/',sameSite:'lax',secure:req.secure,httpOnly:true});res.json({ok:true});
-});
-app.get('/api/admin/me',auth,(req,res)=>res.json({ok:true,username:ADMIN_USER}));
+  await db.query('INSERT INTO admin_sessions(token_hash,expires_at) VALUES($1,now()+($2::int * interval \'1 day\'))',
+    [sessionHash(token),ADMIN_SESSION_DAYS]);
+  res.set('Cache-Control','no-store');
+  res.cookie('nk_sid',token,{...sessionCookieSettings(req),maxAge:ADMIN_SESSION_MS});
+  res.json({ok:true,validDays:ADMIN_SESSION_DAYS});
+}));
+app.post('/api/admin/logout',auth,guard(async(req,res)=>{
+  const token=getSessionToken(req);
+  if(token)await db.query('DELETE FROM admin_sessions WHERE token_hash=$1',[sessionHash(token)]);
+  res.clearCookie('nk_sid',sessionCookieSettings(req));
+  res.set('Cache-Control','no-store').json({ok:true});
+}));
+app.get('/api/admin/me',auth,(req,res)=>res.set('Cache-Control','no-store').json({ok:true,username:ADMIN_USER}));
 app.get('/api/admin/bookings',auth,needDB,guard(async(req,res)=>{
   const status=safeString(req.query.status,30);
   const sql=statuses.includes(status)?'SELECT * FROM bookings WHERE status=$1 ORDER BY created_at DESC LIMIT 300':'SELECT * FROM bookings ORDER BY created_at DESC LIMIT 300';
