@@ -321,11 +321,14 @@ async function reviewsView(){
     '<div class="panel"><div class="panel-head"><div><h2>Все отзывы</h2><p>Можно редактировать, скрывать и удалять</p></div><strong>'+savedReviews.length+'</strong></div>'+
     '<div class="review-list" id="reviewList">'+(savedReviews.length?savedReviews.map(item=>{
       const initials=esc(item.author.slice(0,1).toLocaleUpperCase());
-      const avatar=item.has_avatar&&item.is_published?'<img class="review-avatar" src="/api/reviews/'+esc(item.id)+'/avatar" alt="Аватар">':'<span class="review-avatar">'+initials+'</span>';
+      const photo=item.has_avatar&&item.is_published?'/api/reviews/'+encodeURIComponent(item.id)+'/avatar':
+        (typeof item.avatar_url==='string'&&item.avatar_url.startsWith('https://images.unsplash.com/photo-')?item.avatar_url:'');
+      const avatar=photo?'<img class="review-avatar" src="'+esc(photo)+'" alt="'+(item.is_demo?'Иллюстративный портрет':'Аватар')+'" loading="lazy">':
+        '<span class="review-avatar">'+initials+'</span>';
       return '<article class="review-entry"><div class="review-entry-header">'+avatar+
         '<div class="review-entry-meta"><strong>'+esc(item.author)+'</strong><div style="font-size:11px;color:#8397af">'+esc(item.service)+'</div><div class="review-stars">'+reviewStars(item.rating)+'</div></div>'+
         '<span class="tag '+(item.is_published?'completed':'cancelled')+'">'+(item.is_published?'На сайте':'Скрыт')+'</span></div>'+
-        '<p>'+esc(item.body)+'</p><div style="font-size:11px;color:#8a9bb2;margin:0 0 13px">'+(item.is_demo?'Демонстрационный пример · не отзыв клиента':'Отзыв клиента')+'</div>'+
+        '<p>'+esc(item.body)+'</p><div style="font-size:11px;color:#8a9bb2;margin:0 0 13px">'+(item.is_demo?'Демонстрационный пример · вымышленный отзыв, иллюстративный портрет':'Отзыв клиента')+'</div>'+
         '<div class="review-actions"><button class="btn sm soft" data-edit-review="'+esc(item.id)+'">Изменить</button>'+
         '<button class="btn sm danger" data-delete-review="'+esc(item.id)+'">Удалить</button></div></article>';
     }).join(''):nothing('Добавьте первый отзыв.'))+'</div></div></div>';
