@@ -110,6 +110,7 @@ h1{font-size:clamp(27px,3.6vw,39px);font-weight:900;letter-spacing:-1.7px;margin
       <button type="button" data-page="prices"><span class="ico">◈</span> Прайс-лист</button>
       <button type="button" data-page="gallery"><span class="ico">▧</span> Наши работы</button>
       <button type="button" data-page="reviews"><span class="ico">★</span> Отзывы клиентов</button>
+      <button type="button" data-page="telegram"><span class="ico">✉</span> Telegram</button>
     </nav></div>
     <div class="side-bottom"><strong>✨ Всё в одном месте</strong><p>Изменения прайса и фотографии работ появляются на сайте без редактирования GitHub.</p><div class="line" style="margin:12px 0"></div><a href="/" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:#1561db">Открыть сайт ↗</a></div>
     <button type="button" class="btn" id="logout" style="width:100%;margin-top:-8px">⇥ Выйти из кабинета</button>
@@ -133,7 +134,7 @@ const qs=(q,root=document)=>root.querySelector(q),qa=(q,root=document)=>[...root
 const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const statusNames={new:'Новая',contacted:'Связались',confirmed:'Подтверждена',completed:'Выполнена',cancelled:'Отменена'};
 const state={page:'overview',orders:[],prices:{},projects:[],category:null,filter:'all',search:''};
-const sections={overview:'Обзор',orders:'Заявки',prices:'Прайс-лист',gallery:'Наши работы',reviews:'Отзывы'};
+const sections={overview:'Обзор',orders:'Заявки',prices:'Прайс-лист',gallery:'Наши работы',reviews:'Отзывы',telegram:'Telegram'};
 async function api(url,options={}){
   const r=await fetch(url,{credentials:'same-origin',cache:'no-store',...options});
   let body={};try{body=await r.json()}catch{}
@@ -190,6 +191,7 @@ async function go(page){
     else if(page==='prices')await prices();
     else if(page==='gallery')await gallery();
     else if(page==='reviews')await reviewsView();
+    else if(page==='telegram')await telegramView();
   }catch(e){qs('#mainView').innerHTML=heading('Не удалось загрузить',e.message)+'<div class="notice error">'+esc(e.message)+'</div>';dbWarning()}
 }
 function dbWarning(){
@@ -303,6 +305,47 @@ async function savePrices(){
 let savedReviews=[];
 const reviewServiceOptions=['Генеральная уборка квартиры','Уборка кухни','Химчистка мебели','Химчистка матраса','Химчистка ковра','Химчистка автомобиля','Химчистка грузового автомобиля','Уборка после ремонта','Дополнительные услуги','Другая услуга'];
 function reviewStars(n){return '★'.repeat(Number(n)||0)+'☆'.repeat(5-(Number(n)||0))}
+
+async function telegramView(){
+  const settings=await api('/api/admin/telegram/status');
+  dbReady();
+  const connected=Boolean(settings.configured);
+  const requirements=[
+    ['TELEGRAM_BOT_TOKEN',settings.tokenSet],
+    ['TELEGRAM_CHAT_ID',settings.chatSet]
+  ];
+  const indicator=connected?'✅ Бот и чат заданы':'⚠ Бот пока не настроен';
+  const waiting=Number(settings.queued)||0,delivered=Number(settings.delivered)||0;
+  qs('#mainView').innerHTML=heading('Telegram-уведомления','Каждая заявка сохраняется в базе и отправляется вашему боту автоматически.')+
+    '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">'+
+    '<div class="stat"><div class="stat-icon '+(connected?'green':'orange')+'">✉</div><div class="value" style="font-size:18px">'+indicator+'</div><div class="name">Настройка доставки</div></div>'+
+    '<div class="stat"><div class="stat-icon">◷</div><div class="value">'+esc(waiting)+'</div><div class="name">Ожидают отправки</div></div>'+
+    '<div class="stat"><div class="stat-icon green">✓</div><div class="value">'+esc(delivered)+'</div><div class="name">Доставлено в Telegram</div></div></div>'+
+    '<div class="two"><div class="panel"><div class="panel-head"><div><h2>Настройка Telegram</h2><p>Секреты задаются только в Render</p></div></div>'+
+    '<p style="color:#667a98">1. Создайте бота через @BotFather в Telegram и скопируйте токен.</p>'+
+    '<p style="color:#667a98">2. Напишите боту /start (либо добавьте его в рабочую группу и дайте право отправлять сообщения).</p>'+
+    '<p style="color:#667a98">3. Узнайте Chat ID получателя. Для личного чата можно открыть getUpdates API своего бота после /start.</p>'+
+    '<p style="color:#667a98">4. Добавьте обе переменные в Render → nashclining → Environment и сохраните.</p>'+
+    '<div class="line"></div>'+
+    requirements.map(([name,set])=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0"><code style="font-size:12px">'+esc(name)+'</code><span class="tag '+(set?'completed':'cancelled')+'">'+(set?'Указана':'Не задана')+'</span></div>').join('')+
+    '<p class="subtitle" style="margin-top:15px">Токен и ID чата никогда не выводятся на этой странице. Они не должны храниться в GitHub.</p>'+
+    '<div class="toolbar" style="margin-top:20px"><a href="https://dashboard.render.com/web/srv-db8gsb0m7kps73fqagk0" target="_blank" rel="noopener" class="btn soft">Открыть Render ↗</a></div></div>'+
+    '<div class="panel"><div class="panel-head"><div><h2>Проверка доставки</h2><p>Отправим тест без данных клиентов</p></div></div>'+
+    '<p class="subtitle" style="line-height:1.9;margin-bottom:20px">Новые заявки включают имя, телефон, услугу, город, дату, время и комментарий. При сбое уведомление не пропадает: очередь повторяет попытку отправки.</p>'+
+    '<button class="btn primary" type="button" id="testTelegram" '+(connected?'':'disabled')+'>✉ Отправить тестовое сообщение</button>'+
+    '<button class="btn" type="button" id="refreshTelegram" style="margin-left:7px">↻ Обновить статус</button>'+
+    (settings.lastError?'<div class="notice warn" style="margin-top:18px">Последняя ошибка доставки: '+esc(settings.lastError)+'</div>':'')+
+    '<div class="line"></div><div class="notice">После настройки бота отправьте тестовое сообщение. Если оно дошло, новые заявки тоже будут отправляться автоматически.</div></div></div>';
+  qs('#refreshTelegram').onclick=()=>go('telegram');
+  qs('#testTelegram').onclick=async()=>{
+    const btn=qs('#testTelegram');btn.disabled=true;btn.textContent='Отправляем…';
+    try{
+      await api('/api/admin/telegram/test',{method:'POST'});
+      toast('Тестовое сообщение отправлено в Telegram!');
+      await telegramView();
+    }catch(e){toast(e.message,true);btn.disabled=false;btn.textContent='✉ Отправить тестовое сообщение'}
+  };
+}
 async function reviewsView(){
   savedReviews=await api('/api/admin/reviews');dbReady();
   qs('#mainView').innerHTML=heading('Отзывы клиентов','Добавляйте реальные отзывы с разрешения клиента. Примеры оформления отмечаются как демонстрационные.')+
