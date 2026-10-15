@@ -308,6 +308,7 @@ function reviewStars(n){return '★'.repeat(Number(n)||0)+'☆'.repeat(5-(Number
 
 async function telegramView(){
   const settings=await api('/api/admin/telegram/status');
+  const business=await api('/api/admin/business-ai/status');
   dbReady();
   const connected=Boolean(settings.configured);
   const requirements=[
@@ -336,6 +337,82 @@ async function telegramView(){
     '<button class="btn" type="button" id="refreshTelegram" style="margin-left:7px">↻ Обновить статус</button>'+
     (settings.lastError?'<div class="notice warn" style="margin-top:18px">Последняя ошибка доставки: '+esc(settings.lastError)+'</div>':'')+
     '<div class="line"></div><div class="notice">После настройки бота отправьте тестовое сообщение. Если оно дошло, новые заявки тоже будут отправляться автоматически.</div></div></div>';
+
+  // Telegram Business AI: independent opt-in from existing Telegram order notifications.
+  const connections=business.connections||[],chats=business.chats||[];
+  const approved=connections.filter(x=>x.approved&&x.enabled&&x.can_reply);
+  const aiConnected=Boolean(business.openaiConfigured);
+  const setupReady=Boolean(business.telegramConfigured);
+  qs('#mainView').insertAdjacentHTML('beforeend',
+    '<div class="panel" style="margin-top:22px">'+
+    '<div class="panel-head"><div><h2>🤖 AI в личных Telegram-чатах</h2><p>Отвечает клиентам через Telegram Business, уточняет услугу и передаёт сложные вопросы вам</p></div>'+
+    '<span class="tag '+(business.enabled?'completed':'cancelled')+'">'+(business.enabled?'AI включён':'AI выключен')+'</span></div>'+
+    '<div class="notice" style="margin-bottom:19px">Автоответы работают только для чатов, которым вы дали доступ в Telegram Business. Перед началом одобрите подключение ниже. Когда вы берёте разговор на себя или клиент просит консультанта, AI ставится на паузу.</div>'+
+    '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(155px,1fr))">'+
+    '<div class="stat"><div class="stat-icon '+(aiConnected?'green':'orange')+'">✦</div><div class="value" style="font-size:17px">'+(aiConnected?'API подключён':'Нужен API-ключ')+'</div><div class="name">OpenAI API</div></div>'+
+    '<div class="stat"><div class="stat-icon '+(approved.length?'green':'orange')+'">✉</div><div class="value">'+esc(approved.length)+'</div><div class="name">Разрешённые подключения</div></div>'+
+    '<div class="stat"><div class="stat-icon">▤</div><div class="value">'+esc(chats.length)+'</div><div class="name">Диалоги в панели</div></div></div>'+
+    '<h3 style="margin:10px 0 12px">Подключение за 4 шага</h3>'+
+    '<p class="subtitle" style="line-height:1.9">1. У @BotFather включите у вашего бота режим <b>Business / Secretary Mode</b>.<br>'+
+    '2. Нажмите «Настроить приём сообщений» ниже, чтобы зарегистрировать защищённый webhook.<br>'+
+    '3. В Telegram откройте <b>Настройки → Telegram Business → Чат-боты</b>, добавьте бота, выдайте разрешения читать сообщения и отвечать, выберите только рабочие чаты.<br>'+
+    '4. Вернитесь сюда, обновите раздел, одобрите свой аккаунт и включите AI.</p>'+
+    '<div class="toolbar" style="justify-content:flex-start;margin:20px 0">'+
+    '<button type="button" class="btn soft" id="registerBusinessWebhook" '+(setupReady?'':'disabled')+'>🔗 Настроить приём сообщений</button>'+
+    '<button type="button" class="btn '+(business.enabled?'danger':'primary')+'" id="toggleBusinessAI" '+(aiConnected?'':'disabled')+'>'+
+    (business.enabled?'⏸ Отключить автоответы':'▶ Включить AI-ответы')+'</button>'+
+    '<button type="button" class="btn" id="refreshBusiness">↻ Обновить подключения</button></div>'+
+    '<div class="line"></div>'+
+    '<div class="panel-head"><h3>Подключённые аккаунты</h3></div>'+
+    (connections.length?connections.map(item=>
+      '<div class="order" style="margin-bottom:9px"><div><div class="order-title">Telegram ID владельца: '+esc(item.owner_id)+'</div>'+
+      '<div class="order-meta">Разрешение отвечать: '+(item.can_reply?'да':'нет')+' · Соединение: '+(item.enabled?'включено':'выключено')+'</div>'+
+      '<div class="order-meta">'+(item.approved?'✅ Одобрено в админке':'⛔ Ожидает одобрения')+'</div></div>'+
+      '<button class="btn sm '+(item.approved?'danger':'primary')+'" data-business-connection="'+esc(item.id)+'" data-approve="'+(!item.approved)+'">'+
+      (item.approved?'Отозвать доступ':'Одобрить')+'</button></div>').join(''):
+      '<div class="notice warn">Пока нет подключений. Сначала включите Business-режим бота в @BotFather, затем подключите его через настройки Telegram.</div>')+
+    '<div class="line"></div><div class="panel-head"><h3>Диалоги клиентов</h3></div>'+
+    (chats.length?'<div class="orders-grid">'+chats.map(item=>
+      '<div class="order"><div><div class="order-title">'+esc(item.display_name||'Клиент Telegram')+
+      '</div><div class="order-meta">ID диалога: '+esc(item.chat_id)+' · '+(item.paused?'Пауза / менеджер':'AI может отвечать')+'</div>'+
+      (item.last_error?'<div class="order-meta" style="color:#b95365">'+esc(item.last_error)+'</div>':'')+'</div>'+
+      '<button class="btn sm '+(item.paused?'soft':'danger')+'" data-business-chat="'+esc(item.connection_id+':'+item.chat_id)+'" data-business-pause="'+(!item.paused)+'">'+
+      (item.paused?'▶ Возобновить AI':'⏸ Пауза')+'</button></div>').join('')+'</div>':
+      '<div class="empty">Диалоги появятся после первого сообщения клиента, доступного Business-боту.</div>')+
+    '<p style="margin-top:18px;color:#7186a1;font-size:11px">⚠ Ключ OpenAI хранится только в Render. Не подключайте AI ко всем личным чатам: выберите только рабочие. Сообщения клиента передаются OpenAI для генерации ответа, а последние реплики диалога хранятся в PostgreSQL.</p></div>'
+  );
+  qs('#registerBusinessWebhook').onclick=async()=>{
+    if(!confirm('Подключить webhook этого проекта к вашему Telegram-боту? Если бот уже используется другим сервисом, он может перестать получать сообщения там.'))return;
+    const btn=qs('#registerBusinessWebhook');btn.disabled=true;
+    try{const r=await api('/api/admin/business-ai/setup',{method:'POST'});
+      toast(r.message||'Webhook готов');await telegramView();
+    }catch(e){toast(e.message,true);btn.disabled=false}
+  };
+  qs('#toggleBusinessAI').onclick=async()=>{
+    if(!business.enabled&&!confirm('AI сможет автоматически отвечать от имени вашего аккаунта Telegram в выбранных Business-чатах. Включить?'))return;
+    const btn=qs('#toggleBusinessAI');btn.disabled=true;
+    try{await api('/api/admin/business-ai/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!business.enabled})});
+      toast(business.enabled?'AI отключён':'AI включён');await telegramView();
+    }catch(e){toast(e.message,true);btn.disabled=false}
+  };
+  qs('#refreshBusiness').onclick=()=>telegramView();
+  qa('[data-business-connection]').forEach(btn=>btn.onclick=async()=>{
+    const yes=btn.dataset.approve==='true';
+    if(yes&&!confirm('Одобрить подключение Telegram-аккаунта? Только после этого AI сможет отвечать в его рабочих чатах.'))return;
+    btn.disabled=true;
+    try{await api('/api/admin/business-ai/connections/'+encodeURIComponent(btn.dataset.businessConnection),
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approved:yes})});
+      toast('Разрешение сохранено');await telegramView();
+    }catch(e){toast(e.message,true);btn.disabled=false}
+  });
+  qa('[data-business-chat]').forEach(btn=>btn.onclick=async()=>{
+    const yes=btn.dataset.businessPause==='true';btn.disabled=true;
+    try{await api('/api/admin/business-ai/chats/'+encodeURIComponent(btn.dataset.businessChat),
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paused:yes})});
+      toast(yes?'AI остановлен для диалога':'AI может продолжить с нового сообщения клиента');await telegramView();
+    }catch(e){toast(e.message,true);btn.disabled=false}
+  });
+
   qs('#refreshTelegram').onclick=()=>go('telegram');
   qs('#testTelegram').onclick=async()=>{
     const btn=qs('#testTelegram');btn.disabled=true;btn.textContent='Отправляем…';
