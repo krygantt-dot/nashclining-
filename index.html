@@ -361,7 +361,7 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
 .review-person{display:flex;align-items:center;gap:11px}
 .review-avatar{width:45px;height:45px;flex:none;border-radius:50%;object-fit:cover;display:grid;place-items:center;color:#fff;font-size:19px;font-weight:800;background:linear-gradient(135deg,#1c9dfa,#063cb1)}
 .review-person .name{font-size:12px;font-weight:850;color:#203958}
-.review-person .service{font-size:10px;color:#8091aa;margin-top:3px}
+.review-person .review-service{font-size:10px;color:#8091aa;margin-top:3px;border:0!important;background:none!important;box-shadow:none!important;transform:none!important;transition:none!important;position:static!important;overflow:visible!important;padding:0!important}
 .review-demo-tag{display:inline-block;width:max-content;max-width:100%;margin-top:12px;padding:5px 9px;background:#f2f6fc;border-radius:9px;color:#69809d;font-size:10px;font-weight:750}
 .reviews-note{font-size:11px;color:#7691af;margin:14px 0 0}
 @media(max-width:900px){.reviews-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -633,22 +633,102 @@ selectCoverageCity('Минск');
   const note=document.getElementById('reviewDisclosure');
   if(!grid)return;
   const samples=[
-    {id:0,author:'Пример отзыва',service:'Химчистка дивана',rating:5,body:'Здесь может появиться отзыв клиента о чистке мебели.',is_demo:true},
-    {id:0,author:'Пример отзыва',service:'Генеральная уборка квартиры',rating:5,body:'Здесь может появиться отзыв клиента об уборке квартиры.',is_demo:true},
-    {id:0,author:'Пример отзыва',service:'Химчистка автомобиля',rating:5,body:'Здесь может появиться отзыв клиента о химчистке салона.',is_demo:true}
+    {
+      "id": 0,
+      "author": "Анастасия",
+      "service": "Химчистка дивана",
+      "rating": 5,
+      "body": "Демонстрационная история о том, как глубокая чистка помогает освежить диван.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Дмитрий",
+      "service": "Генеральная уборка квартиры",
+      "rating": 5,
+      "body": "Пример отзыва о генеральной уборке: порядок, внимательная работа с поверхностями.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Елена",
+      "service": "Химчистка автомобиля",
+      "rating": 5,
+      "body": "Пример впечатления от чистки сидений и салона автомобиля.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Сергей",
+      "service": "Уборка после ремонта",
+      "rating": 5,
+      "body": "Пример оценки уборки после ремонта: чистота помещения без строительной пыли.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Мария",
+      "service": "Уборка офиса",
+      "rating": 5,
+      "body": "Пример отзыва о регулярном поддержании чистоты в офисе.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Алексей",
+      "service": "Химчистка матраса",
+      "rating": 5,
+      "body": "Пример отзыва о качественной глубокой чистке матраса.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Ольга",
+      "service": "Химчистка ковров",
+      "rating": 5,
+      "body": "Пример оценки бережной химчистки ковра и удаления загрязнений.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=160&h=160&q=80"
+    },
+    {
+      "id": 0,
+      "author": "Игорь",
+      "service": "Химчистка мебели",
+      "rating": 5,
+      "body": "Пример отзыва о химчистке мягкой мебели и результате работы.",
+      "is_demo": true,
+      "avatar_url": "https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=160&h=160&q=80"
+    }
   ];
   function safe(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
   function render(items,fallback){
     grid.innerHTML=items.map(r=>{
       const n=Number(r.rating)||5;
-      const avatar=r.has_avatar&&r.id?'<img class="review-avatar" src="/api/reviews/'+encodeURIComponent(r.id)+'/avatar" alt="Аватар автора">':
-        '<span class="review-avatar" aria-hidden="true">'+safe(String(r.author||'?').slice(0,1).toLocaleUpperCase())+'</span>';
+      const demoPortrait=typeof r.avatar_url==='string'&&r.avatar_url.startsWith('https://images.unsplash.com/photo-')?r.avatar_url:'';
+      const avatar=(r.has_avatar&&r.id)
+        ?'<img class="review-avatar" src="/api/reviews/'+encodeURIComponent(r.id)+'/avatar" alt="Фото автора" loading="lazy">'
+        :(demoPortrait?'<img class="review-avatar" src="'+safe(demoPortrait)+'" alt="Иллюстративный портрет — не фотография клиента" loading="lazy">'
+        :'<span class="review-avatar" aria-hidden="true">'+safe(String(r.author||'?').slice(0,1).toLocaleUpperCase())+'</span>');
       return '<article class="review-card"><div class="review-stars" aria-label="Оценка: '+n+' из 5">'+
         '★'.repeat(n)+'☆'.repeat(5-n)+'</div><p class="review-quote">“'+safe(r.body)+'”</p><div class="review-person">'+avatar+
-        '<div><div class="name">'+safe(r.author)+'</div><div class="service">'+safe(r.service)+'</div></div></div>'+
-        (r.is_demo?'<span class="review-demo-tag">Демонстрационный пример · не отзыв клиента</span>':'')+'</article>';
+        '<div><div class="name">'+safe(r.author)+'</div><div class="review-service">'+safe(r.service)+'</div></div></div>'+
+        (r.is_demo?'<span class="review-demo-tag">Пример оформления · вымышленный отзыв, иллюстративный портрет</span>':'')+'</article>';
     }).join('');
-    note.textContent=fallback?'Это примеры оформления. Реальные отзывы можно добавить в админ-панели.':'Отзывы опубликованы с указанием услуги; демонстрационные примеры отмечены отдельно.';
+    grid.querySelectorAll('img.review-avatar').forEach(img=>{
+      img.addEventListener('error',()=>{
+        const fallbackAvatar=document.createElement('span');
+        fallbackAvatar.className='review-avatar';
+        fallbackAvatar.textContent=(img.closest('.review-person')?.querySelector('.name')?.textContent||'?').slice(0,1).toUpperCase();
+        img.replaceWith(fallbackAvatar);
+      },{once:true});
+    });
+    note.textContent=fallback?'Показаны демонстрационные карточки с вымышленными именами и иллюстративными портретами. Реальные отзывы можно добавить в админ-панели.':'Отзывы из базы данных. Вымышленные примеры и иллюстративные портреты отмечены отдельно.';
   }
   fetch('/api/reviews',{cache:'no-store'}).then(async res=>{
     if(!res.ok)throw Error('Не удалось получить отзывы');
