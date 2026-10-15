@@ -374,6 +374,38 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
  .review-quote{font-size:12px}
 }
 </style>
+<style id="reviewsHoverStability">
+/* Reviews are static reading cards, not interactive service cards. */
+#customerReviews .review-card,#customerReviews .review-card:hover,
+#customerReviews .review-card:focus-within,#customerReviews .review-person,
+#customerReviews .review-service,#customerReviews .review-service:hover,
+#customerReviews .review-card .review-avatar{
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+#customerReviews .review-card,#customerReviews .review-card:hover{
+  position:relative;top:auto;left:auto;
+  box-shadow:0 10px 35px #154e9712!important;
+  padding:23px;
+}
+#customerReviews .review-service,#customerReviews .review-service:hover{
+  display:block;position:static!important;
+  width:auto!important;height:auto!important;min-height:0!important;
+  max-width:100%!important;
+  margin-top:3px!important;margin-bottom:0!important;
+  padding:0!important;border:0!important;
+  box-shadow:none!important;background:none!important;
+  overflow-wrap:anywhere;line-height:1.5;
+  font-size:10px;color:#8091aa;
+}
+#customerReviews .review-card .review-person *:hover{
+  transform:none!important;animation:none!important;
+}
+@media(max-width:620px){
+ #customerReviews .review-card,#customerReviews .review-card:hover{padding:18px}
+}
+</style>
 </head>
 <body>
 <div class="site-bg"><div class="ambient a"></div><div class="ambient b"></div></div>
@@ -394,12 +426,11 @@ html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
 <section class="projects-showcase" id="ourProjects" style="padding:40px 0 88px;display:none"><div class="container"><div class="section-head"><div><div class="kicker">Реальные работы</div><h2 class="section-title">До и <span class="blue-text">после</span></h2><p class="section-description">Фотографии опубликованы нашей командой. Перемещайте ползунок для сравнения.</p></div></div><div id="realProjects" class="ba-grid"></div></div></section>
 <section class="gallery" id="gallery"><div class="container"><div class="section-head reveal"><div><div class="kicker">Наш подход</div><h2 class="section-title">В каждой детали — <span class="blue-text">ощущение свежести</span></h2><p class="section-description">Примеры направлений работы. Фотографии на сайте иллюстративные; наши реальные работы — в Instagram.</p></div><a class="btn btn-outline" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener">Наш Instagram ↗</a></div><div class="gallery-grid"><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80" alt="Уютная гостиная"><span>Мягкая мебель ↗</span></a><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=650&q=80" alt="Автомобиль"><span>Автомобили ↗</span></a><a class="gallery-photo reveal" href="https://www.instagram.com/nash_klining.by/" target="_blank" rel="noopener"><img loading="lazy" src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=650&q=80" alt="Чистая квартира"><span>Квартиры и дома ↗</span></a></div></div></section>
 <section class="reviews" id="reviews"><div class="container">
-  <div class="reviews-heading reveal"><div><div class="kicker">Оценки и впечатления</div>
-    <h2 class="section-title">Что говорят <span class="blue-text">о нашей работе</span></h2>
-    <p>Отзывы с оценками, фотографиями и указанием оказанной услуги.</p></div></div>
+  <div class="reviews-heading reveal"><div><div class="kicker">Отзывы и впечатления</div>
+    <h2 class="section-title" id="reviewSectionHeading">Примеры <span class="blue-text">отзывов</span></h2>
+    <p id="reviewSectionDescription">Примеры оформления с иллюстративными аватарками. Реальные отзывы появятся после публикации.</p></div></div>
   <div class="reviews-grid" id="customerReviews" aria-live="polite"></div>
-  <p class="reviews-note" id="reviewDisclosure"></p>
-</div></section>
+  </div></section>
 <section class="coverage" id="coverage"><div class="container coverage-grid"><div class="reveal"><div class="kicker">География работы</div><h2 class="section-title">Приедем <span class="blue-text">к вам</span></h2><p class="section-description">Работаем по Минску и другим городам Беларуси. Уточните возможность и стоимость выезда при записи.</p><div class="cities" id="cityButtons"><button class="city active" data-city="Минск">⌖ Минск</button><button class="city" data-city="Бобруйск">⌖ Бобруйск</button><button class="city" data-city="Солигорск">⌖ Солигорск</button><button class="city" data-city="Жлобин">⌖ Жлобин</button><button class="city" data-city="Рогачёв">⌖ Рогачёв</button></div><button data-order class="btn btn-primary">Узнать стоимость выезда ↗</button></div><div class="map-wrap reveal" id="mapWrap">
   <div class="map-preview" id="mapPreview" role="group" aria-label="Схема городов обслуживания">
     <div class="map-grid"></div>
@@ -630,7 +661,8 @@ selectCoverageCity('Минск');
 
 (function loadCustomerReviews(){
   const grid=document.getElementById('customerReviews');
-  const note=document.getElementById('reviewDisclosure');
+  const heading=document.getElementById('reviewSectionHeading');
+  const description=document.getElementById('reviewSectionDescription');
   if(!grid)return;
   const samples=[
     {
@@ -718,7 +750,7 @@ selectCoverageCity('Минск');
       return '<article class="review-card"><div class="review-stars" aria-label="Оценка: '+n+' из 5">'+
         '★'.repeat(n)+'☆'.repeat(5-n)+'</div><p class="review-quote">“'+safe(r.body)+'”</p><div class="review-person">'+avatar+
         '<div><div class="name">'+safe(r.author)+'</div><div class="review-service">'+safe(r.service)+'</div></div></div>'+
-        (r.is_demo?'<span class="review-demo-tag">Пример оформления · вымышленный отзыв, иллюстративный портрет</span>':'')+'</article>';
+        '</article>';
     }).join('');
     grid.querySelectorAll('img.review-avatar').forEach(img=>{
       img.addEventListener('error',()=>{
@@ -728,7 +760,12 @@ selectCoverageCity('Минск');
         img.replaceWith(fallbackAvatar);
       },{once:true});
     });
-    note.textContent=fallback?'Показаны демонстрационные карточки с вымышленными именами и иллюстративными портретами. Реальные отзывы можно добавить в админ-панели.':'Отзывы из базы данных. Вымышленные примеры и иллюстративные портреты отмечены отдельно.';
+    const allDemo=items.every(item=>item.is_demo);
+    const anyDemo=items.some(item=>item.is_demo);
+    heading.innerHTML=allDemo?'Примеры <span class="blue-text">отзывов</span>':
+      (anyDemo?'Отзывы <span class="blue-text">и примеры</span>':'Отзывы <span class="blue-text">наших клиентов</span>');
+    description.textContent=allDemo?'Иллюстративные аватарки и вымышленные имена для примера оформления.':
+      (anyDemo?'Часть карточек — примеры оформления; настоящие отзывы опубликованы отдельно.':'Реальные впечатления клиентов об оказанных услугах.');
   }
   fetch('/api/reviews',{cache:'no-store'}).then(async res=>{
     if(!res.ok)throw Error('Не удалось получить отзывы');
