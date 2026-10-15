@@ -1,140 +1,310 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Админ-панель | Наш Клининг</title><meta name="robots" content="noindex,nofollow">
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f2f7ff">
+<title>Управление бизнесом — Наш Клининг</title>
 <style>
-:root{--blue:#1467ff;--navy:#112956;--ink:#163058;--muted:#6c80a0;--line:#dce8f7;--bg:#edf6ff}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#e7f4ff,#fff 55%,#e8edff);min-height:100vh;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
-button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}button,a{-webkit-tap-highlight-color:transparent}
-.page{max-width:1200px;margin:auto;padding:26px 18px 80px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:13px;font-weight:850;font-size:20px;text-decoration:none;color:var(--navy)}.brand img{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:contain}
-.hint{color:var(--muted);font-size:12px}.panel{background:#ffffffdf;backdrop-filter:blur(24px);border:1px solid #fff;border-radius:26px;padding:clamp(18px,3vw,32px);box-shadow:0 20px 65px #174d9920}
-.login{max-width:440px;margin:11vh auto 0}.login h1{font-size:30px;margin:0 0 10px}
-.field{display:flex;flex-direction:column;gap:7px;margin:14px 0;font-weight:650}.field input,.field select,.field textarea,textarea.code{width:100%;border:1px solid var(--line);border-radius:13px;background:#f8fbff;padding:13px;color:var(--ink);outline-color:var(--blue)}
-button.primary,.primary{border:0;border-radius:14px;background:linear-gradient(120deg,#0b43d1,#167dff);color:white;font-weight:750;padding:12px 19px;box-shadow:0 8px 20px #1476ea33}
-button.secondary{border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);font-weight:650;padding:11px 16px}
-button.danger{border:0;background:#fff0f2;color:#c12b4c;border-radius:10px;padding:8px 10px}
-button.small{padding:7px 10px;border-radius:9px}
-.notice{padding:12px 16px;border-radius:12px;background:#edf5ff;color:#1747a3;margin:14px 0}.notice.error{background:#fff1f1;color:#a12b43}
-.tabs{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 22px}.tabs button{border:1px solid #d7e9ff;background:#fff;padding:10px 15px;border-radius:12px;color:var(--ink);font-weight:750}.tabs button.active{background:var(--blue);color:white}
-h1,h2,h3{color:var(--navy)}h2{font-size:25px;margin:0 0 18px}h3{font-size:17px;margin:10px 0}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{border:1px solid var(--line);border-radius:17px;padding:22px;background:#f5faff}.metric strong{font-size:33px;display:block;color:var(--blue)}
-.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:normal}th{font-size:12px;color:var(--muted)}
-.pill{display:inline-block;padding:5px 8px;border-radius:9px;background:#e8f4ff;color:#1762c3;font-size:11px;font-weight:700}
-.group{background:#f5faff;border:1px solid var(--line);border-radius:20px;padding:20px;margin:14px 0}
-.price-line{display:grid;grid-template-columns:1fr 170px auto;gap:8px;align-items:center;padding:8px 0}
-.price-line input{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:9px;background:#fff}
-.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0}
-.toolbar select{min-width:220px;border:1px solid var(--line);padding:11px;border-radius:13px;background:white}
-.projects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.project{padding:15px;border:1px solid var(--line);background:#f7fbff;border-radius:18px}.project .photos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.project img{width:100%;height:145px;object-fit:cover;border-radius:12px}
-.hidden{display:none!important}.right{margin-left:auto}
-@media(max-width:700px){.grid,.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.price-line{grid-template-columns:1fr 100px auto}.page{padding:18px 12px 70px}}@media(max-width:480px){.grid,.projects{grid-template-columns:1fr}table{font-size:12px}}
-</style></head><body><main class="page">
-<header class="top"><a class="brand" href="/"><img src="/assets/logo.png" alt=""> Наш Клининг <span class="hint">/ управление</span></a><button class="secondary hidden" id="logout">Выйти ↗</button></header>
-<div class="panel login" id="loginBox"><h1>Вход в панель</h1><p class="hint">Доступ только администраторам компании.</p><form id="loginForm"><label class="field">Логин<input name="username" value="admin" autocomplete="username" required></label><label class="field">Пароль<input name="password" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">Войти →</button></form><div id="loginNotice"></div></div>
-<div class="hidden" id="appBox"><div class="tabs" id="tabs"><button class="active" data-view="dashboard">Обзор</button><button data-view="bookings">Заявки</button><button data-view="prices">Цены</button><button data-view="projects">Работы до/после</button></div>
-<div class="panel" id="viewBox"><div id="message"></div><div id="viewBody"></div></div></div>
-</main><script>
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const statuses={new:'Новая',contacted:'Связались',confirmed:'Подтверждена',completed:'Выполнена',cancelled:'Отменена'};
-let prices={},projects=[],bookings=[],view='dashboard';
+:root{color-scheme:light;--ink:#152948;--deep:#101c3b;--muted:#75849a;--blue:#155cf1;--cyan:#1fb3ee;--line:#e7edf7;--white:#fff;--bg:#f4f7fc;--glow:0 14px 55px rgba(33,72,156,.075);--radius:23px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--ink);font:14px/1.55 "Segoe UI",Inter,system-ui,Arial,sans-serif;background:#f4f7fc}
+button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #5eabff;outline-offset:2px}
+button:disabled{opacity:.6;cursor:wait}input,select,textarea{color:var(--ink);accent-color:var(--blue)}.hidden{display:none!important}
+.app{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:100vh;max-width:1920px;margin:auto}
+.side{background:#ffffffdf;border-right:1px solid var(--line);padding:26px 17px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100dvh;z-index:15;backdrop-filter:blur(20px)}
+.brand{display:flex;align-items:center;gap:12px;padding:2px 11px;color:var(--deep)}.brand img{width:51px;height:51px;object-fit:contain;border-radius:50%;box-shadow:0 7px 26px #135bc620}.brand strong{display:block;font-size:17px;font-weight:900;letter-spacing:-.7px}.brand small{font-size:11px;color:var(--muted)}
+.nav-label{font-size:10px;font-weight:800;color:#a5b1c4;text-transform:uppercase;letter-spacing:1.8px;margin:12px 16px 4px}
+.nav{display:grid;gap:7px}.nav button,.nav a{border:0;background:none;border-radius:14px;color:#5b6f8f;display:flex;align-items:center;gap:12px;text-align:left;padding:13px 14px;font-weight:760;transition:background .2s,color .2s}
+.nav button.active,.nav button:hover,.nav a:hover{color:#0d55df;background:linear-gradient(100deg,#eaf3ff,#f4faff)}.nav button.active{box-shadow:inset 3px 0 #167cff}
+.nav .nav-count{margin-left:auto;background:#e5efff;color:#1262e9;border-radius:8px;font-size:11px;padding:2px 8px}
+.ico{display:inline-grid;place-items:center;width:20px;font-size:19px;line-height:1.1}
+.side-bottom{margin-top:auto;border-radius:18px;background:linear-gradient(140deg,#ecf5ff,#f5f9ff);border:1px solid #e0eeff;padding:16px}.side-bottom strong{font-size:12px}.side-bottom p{font-size:11px;color:#7285a3;margin:6px 0 0}
+.main{min-width:0;padding:23px clamp(16px,3vw,45px) 70px;background:radial-gradient(circle at 60% 0,#e5efff 0,transparent 36%),var(--bg)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:62px;margin-bottom:26px}
+.breadcrumb{font-size:12px;color:#8293b0}.breadcrumb b{color:#3d6299}.top-right{display:flex;align-items:center;gap:12px}
+.today{color:#8090ab;font-size:12px}.status{display:inline-flex;align-items:center;gap:8px;border-radius:30px;background:#e6f7ef;border:1px solid #cef0db;color:#24845e;font-size:11px;font-weight:800;padding:8px 12px}.status::before{content:"";height:7px;width:7px;border-radius:50%;background:#1fc68b;box-shadow:0 0 0 4px #1fc68b1a}.status.warn{color:#9d6318;background:#fff8eb;border-color:#ffe7bc}.status.warn::before{background:#e7a02a}
+h1{font-size:clamp(27px,3.6vw,39px);font-weight:900;letter-spacing:-1.7px;margin:0 0 7px;color:var(--deep);line-height:1.13}h2{font-size:19px;letter-spacing:-.5px;margin:0;color:var(--deep)}h3{font-size:15px;margin:0;color:var(--deep)}
+.subtitle{color:var(--muted);margin:0;font-size:13px}.head{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:6px 0 24px}
+.btn{background:#fff;border:1px solid #dce6f5;color:#3c557e;font-weight:780;border-radius:13px;padding:11px 15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 7px #09295406;transition:transform .18s,box-shadow .18s}.btn:hover{transform:translateY(-1px);box-shadow:0 7px 18px #1666bf15}.btn.primary{color:#fff;border:0;background:linear-gradient(118deg,#156af8,#0845ca);box-shadow:0 9px 25px #1465eb36}.btn.soft{border-color:#cfe3ff;color:#0c5bdd;background:#f5faff}.btn.danger{color:#d94a66;border-color:#ffdce5;background:#fff5f7}.btn.sm{padding:7px 10px;font-size:11px;border-radius:10px}
+.panel{background:#fff;border:1px solid #e6edf8;border-radius:var(--radius);box-shadow:var(--glow);padding:23px;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:13px;flex-wrap:wrap;margin-bottom:19px}.panel-head p{color:var(--muted);font-size:12px;margin:4px 0 0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:22px}
+.stat{background:#fff;border:1px solid #e6edf8;box-shadow:var(--glow);border-radius:20px;padding:20px;position:relative;overflow:hidden}
+.stat:after{content:"";width:90px;height:90px;position:absolute;right:-31px;top:-33px;border-radius:50%;background:#a6d9ff32}
+.stat .stat-icon{width:38px;height:38px;background:#ecf5ff;border-radius:12px;display:grid;place-items:center;color:#1672ff;font-size:20px;margin-bottom:16px}
+.stat .stat-icon.green{background:#e8f9ee;color:#13a86c}.stat .stat-icon.orange{background:#fff4e6;color:#e99831}.stat .stat-icon.violet{background:#f2edff;color:#805def}
+.stat .value{font-size:31px;font-weight:900;color:#183568;line-height:1;letter-spacing:-1.5px}.stat .name{color:#7789a5;font-size:12px;margin-top:7px;font-weight:600}
+.two{display:grid;grid-template-columns:1.35fr 1fr;gap:20px}.line{height:1px;background:var(--line);margin:19px 0}
+.bars{display:grid;gap:14px}.bar-row{display:grid;grid-template-columns:minmax(90px,160px) 1fr 31px;gap:12px;align-items:center;color:#617693;font-size:12px}.bar-track{background:#edf3fc;height:9px;border-radius:15px;overflow:hidden}.bar-fill{height:100%;border-radius:15px;background:linear-gradient(90deg,#216af4,#44bfef);min-width:3px}.bar-row b{text-align:right;color:#254b8c}
+.orders-grid{display:grid;gap:11px}.order{border:1px solid #e5edf8;background:#fcfdff;border-radius:17px;padding:15px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.order .order-title{font-weight:850;color:#203a68}.order .order-meta{font-size:12px;color:#8392a8;margin-top:4px}.order a{color:#1268eb;font-weight:750}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:9px;font-size:10px;font-weight:850;white-space:nowrap}
+.tag.new{background:#e8f2ff;color:#0f61d8}.tag.contacted{background:#ecf6ff;color:#1781bc}.tag.confirmed{background:#f1ecff;color:#754ade}.tag.completed{background:#e8f8ed;color:#16875b}.tag.cancelled{background:#fff0f1;color:#d84d5f}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:11px;flex-wrap:wrap;margin-bottom:16px}
+.filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.input,.select,.textarea{width:100%;background:#f9fbff;border:1px solid #dfe8f5;border-radius:12px;padding:12px 13px;outline:none}.input:focus,.select:focus,.textarea:focus{background:#fff;border-color:#2686fb;box-shadow:0 0 0 3px #2686fb13}
+.filters .input{min-width:240px;max-width:370px}.filters .select{max-width:195px}
+.table-scroll{overflow-x:auto;margin:-4px}.table{width:100%;border-collapse:collapse;min-width:780px}.table th{text-align:left;font-size:10px;letter-spacing:.6px;text-transform:uppercase;font-weight:850;color:#96a3b6;padding:14px 12px;border-bottom:1px solid var(--line)}.table td{padding:14px 12px;border-bottom:1px solid #edf2fa;vertical-align:top;font-size:12px}.table tr:hover td{background:#f9fcff}.table td b{color:#263f69}.table .detail{color:#8795ad;max-width:250px;margin-top:6px;overflow-wrap:anywhere}
+.table td select{font-size:11px;font-weight:800;border:1px solid #e0e9f6;background:#f7fbff;padding:8px 10px;border-radius:10px;max-width:150px}.phone{color:#0d64e1;font-weight:800}
+.empty{padding:50px 20px;text-align:center;color:#8394ad}.empty .emoji{display:block;font-size:32px;margin-bottom:8px}.empty strong{display:block;color:#213f70;margin-bottom:6px}
+.category-tabs{display:flex;gap:8px;overflow-x:auto;padding:3px 0 15px}.category-tabs button{background:#f6f9ff;border:1px solid #dfeafb;color:#6781a5;white-space:nowrap;border-radius:11px;padding:9px 13px;font-size:11px;font-weight:850}.category-tabs button.active{background:#1867eb;border-color:#1867eb;color:#fff}
+.price-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.price-card{border:1px solid #e5edf8;border-radius:19px;background:#fbfdff;padding:18px;min-width:0}.price-card p{font-size:11px;color:#8b9bb2;margin:7px 0 16px}.price-row{display:grid;grid-template-columns:minmax(0,1fr) 116px auto;align-items:center;gap:8px;margin:8px 0}.price-row input{padding:10px 9px;background:#fff;border:1px solid #e2e9f4;border-radius:10px;min-width:0;width:100%;font-size:11px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.field{display:flex;flex-direction:column;gap:8px;font-size:12px;color:#567093;font-weight:790;margin:10px 0}.field input,.field textarea{width:100%;background:#f8fbff;border:1px solid #dce8f6;border-radius:12px;padding:12px;outline-color:#2682fb}
+.file-input{border:1px dashed #acc9f6;background:#f5faff;padding:12px;border-radius:13px}.projects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.project{border:1px solid #e3ecf8;border-radius:18px;overflow:hidden;background:#fbfdff}.project-images{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:#e8eef8}.project-images figure{margin:0;position:relative}.project-images img{width:100%;height:150px;object-fit:cover;display:block}.project-images figcaption{position:absolute;bottom:7px;left:8px;background:#ffffffe8;color:#265082;padding:3px 8px;font-size:10px;font-weight:800;border-radius:7px}.project-body{padding:15px}.project-body p{color:#8797aa;font-size:11px;margin:6px 0 13px}
+.notice{padding:13px 16px;background:#edf5ff;color:#1b5bbe;border-radius:13px;border:1px solid #dbeaff;font-size:12px}.notice.warn{background:#fff9ed;border-color:#ffe7b4;color:#94621d}.notice.error{background:#fff1f2;border-color:#ffd7df;color:#b63850}
+.login-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 15%,#d4e5ff,transparent 40%),radial-gradient(circle at 90% 90%,#d1efff,transparent 45%),#f4f8ff}
+.login-card{display:grid;grid-template-columns:.9fr 1.1fr;width:min(850px,100%);overflow:hidden;border:1px solid #fff;border-radius:28px;box-shadow:0 35px 120px #1756ad26;background:#fff}
+.login-visual{color:#fff;background:linear-gradient(150deg,#033593,#136fed 65%,#2ebdf3);padding:45px 33px;position:relative;overflow:hidden}.login-visual:after,.login-visual:before{content:"";border:1px solid #ffffff28;position:absolute;width:330px;height:330px;border-radius:50%;bottom:-210px;right:-145px}.login-visual:after{bottom:-155px;right:-80px;width:250px;height:250px}
+.login-visual img{width:82px;height:82px;object-fit:contain;border-radius:50%;background:#fff;box-shadow:0 12px 44px #00286733}
+.login-visual h2{font-size:28px;letter-spacing:-1px;color:#fff;line-height:1.12;margin:27px 0 12px}.login-visual p{font-size:13px;line-height:1.9;color:#cfe2ff}
+.login-form{padding:45px 36px}.login-form h1{font-size:32px}.login-form p{color:#8092ad;font-size:12px;margin:7px 0 25px}.login-form .btn{width:100%;margin-top:10px}
+.toast-stack{position:fixed;z-index:200;right:18px;bottom:20px;display:grid;gap:9px;max-width:min(390px,calc(100vw - 30px))}.toast{border-radius:15px;background:#123d82;color:#fff;box-shadow:0 12px 35px #124b9140;padding:14px 17px;font-size:12px;font-weight:650;animation:appear .22s ease}.toast.error{background:#9f344c}@keyframes appear{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.mobile-menu{display:none}
+@media(max-width:1150px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.price-groups{grid-template-columns:1fr}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:820px){.app{grid-template-columns:1fr}.side{position:fixed;inset:0 auto 0 0;width:min(280px,83vw);transform:translateX(-105%);transition:transform .24s;box-shadow:12px 0 45px #1f427123}.side.open{transform:translateX(0)}.mobile-menu{display:inline-flex}.main{padding:15px 15px 65px}.two{grid-template-columns:1fr}.today{display:none}.overlay{position:fixed;inset:0;background:#09224575;z-index:14}.top{margin-bottom:15px}}
+@media(max-width:560px){.head{margin-bottom:17px}.stats{gap:9px}.stat{padding:15px}.stat .value{font-size:25px}.panel{padding:15px;border-radius:18px}.projects{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.filters .input{min-width:0;width:100%}.filters{width:100%}.filters .select{width:100%;max-width:none}.price-row{grid-template-columns:minmax(0,1fr) 93px auto}.login-card{grid-template-columns:1fr}.login-visual{padding:24px 25px}.login-visual img{width:56px;height:56px}.login-visual h2{font-size:19px;margin:13px 0 5px}.login-visual p{display:none}.login-form{padding:25px}.top-right{gap:7px}.status{padding:7px 8px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<section class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-visual">
+      <img src="/assets/logo.png" alt="Наш Клининг">
+      <h2>Чистота под контролем.</h2>
+      <p>Управляйте заявками, обновляйте стоимость услуг и показывайте результаты вашей работы в одном кабинете.</p>
+    </div>
+    <div class="login-form">
+      <div style="color:#1c7af1;font-size:11px;font-weight:900;letter-spacing:2px;margin-bottom:12px">ПАНЕЛЬ УПРАВЛЕНИЯ</div>
+      <h1>С возвращением!</h1><p>Войдите в защищённый кабинет администратора.</p>
+      <form id="loginForm">
+        <label class="field">Логин<input class="input" name="username" autocomplete="username" value="admin" required></label>
+        <label class="field">Пароль<input class="input" type="password" name="password" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit">Войти в кабинет →</button>
+        <div id="loginError" style="margin-top:14px" role="alert"></div>
+      </form>
+      <a href="/" style="display:inline-block;margin-top:22px;color:#1e6ae9;font-size:12px;font-weight:750">← Вернуться на сайт</a>
+    </div>
+  </div>
+</section>
+<div class="app hidden" id="app">
+  <aside class="side" id="sidebar" aria-label="Админ-меню">
+    <a href="/" class="brand"><img src="/assets/logo.png" alt=""><span><strong>Наш Клининг</strong><small>Панель управления</small></span></a>
+    <div><div class="nav-label">Рабочее пространство</div>
+    <nav class="nav" id="navigation">
+      <button type="button" data-page="overview" class="active"><span class="ico">▦</span> Обзор</button>
+      <button type="button" data-page="orders"><span class="ico">▤</span> Заявки <span id="newCount" class="nav-count">0</span></button>
+      <button type="button" data-page="prices"><span class="ico">◈</span> Прайс-лист</button>
+      <button type="button" data-page="gallery"><span class="ico">▧</span> Наши работы</button>
+    </nav></div>
+    <div class="side-bottom"><strong>✨ Всё в одном месте</strong><p>Изменения прайса и фотографии работ появляются на сайте без редактирования GitHub.</p><div class="line" style="margin:12px 0"></div><a href="/" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:#1561db">Открыть сайт ↗</a></div>
+    <button type="button" class="btn" id="logout" style="width:100%;margin-top:-8px">⇥ Выйти из кабинета</button>
+  </aside>
+  <div class="overlay hidden" id="overlay"></div>
+  <main class="main">
+    <header class="top">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button type="button" class="btn mobile-menu" id="mobileMenu" aria-label="Открыть меню">☰</button>
+        <div class="breadcrumb">Панель управления <span style="color:#bec8d8;margin:0 6px">/</span> <b id="breadcrumb">Обзор</b></div>
+      </div>
+      <div class="top-right"><span class="today" id="today"></span><span class="status" id="dbStatus">● Проверка соединения</span></div>
+    </header>
+    <div id="mainView" aria-live="polite"></div>
+  </main>
+</div>
+<div class="toast-stack" id="toasts" aria-live="polite"></div>
+<script>
+'use strict';
+const qs=(q,root=document)=>root.querySelector(q),qa=(q,root=document)=>[...root.querySelectorAll(q)];
+const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const statusNames={new:'Новая',contacted:'Связались',confirmed:'Подтверждена',completed:'Выполнена',cancelled:'Отменена'};
+const state={page:'overview',orders:[],prices:{},projects:[],category:null,filter:'all',search:''};
+const sections={overview:'Обзор',orders:'Заявки',prices:'Прайс-лист',gallery:'Наши работы'};
 async function api(url,options={}){
-  const r=await fetch(url,{credentials:'same-origin',...options});
-  const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}
-  if(!r.ok)throw Error(data.error||'Ошибка сервера '+r.status);return data;
+  const r=await fetch(url,{credentials:'same-origin',cache:'no-store',...options});
+  let body={};try{body=await r.json()}catch{}
+  if(r.status===401&&url!=='/api/admin/login'){showLogin();throw Error('Сеанс завершён. Войдите заново.')}
+  if(!r.ok)throw Error(body.error||'Ошибка сервера: '+r.status);
+  return body;
 }
-function alertMessage(text,bad=false,target='#message'){const el=$(target);if(!el)return;el.innerHTML='<div class="notice '+(bad?'error':'')+'">'+esc(text)+'</div>';}
-function authenticated(){
-  $('#loginBox').classList.add('hidden');$('#appBox').classList.remove('hidden');$('#logout').classList.remove('hidden');show('dashboard');
+function toast(message,error=false){
+  const box=document.createElement('div');box.className='toast'+(error?' error':'');box.textContent=(error?'⚠ ':'✓ ')+message;
+  qs('#toasts').append(box);setTimeout(()=>box.remove(),4500);
 }
-$('#loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;
-  try{await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});authenticated();}
-  catch(e){alertMessage(e.message,true,'#loginNotice')}finally{btn.disabled=false}
+function showLogin(){
+  qs('#app').classList.add('hidden');qs('#loginScreen').classList.remove('hidden');closeMenu();
+}
+function showApp(){
+  qs('#loginScreen').classList.add('hidden');qs('#app').classList.remove('hidden');qs('#today').textContent=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  go('overview');
+}
+qs('#loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();const button=qs('button[type=submit]',e.currentTarget);button.disabled=true;
+  qs('#loginError').textContent='';
+  try{await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});e.currentTarget.querySelector('[name=password]').value='';showApp()}
+  catch(err){qs('#loginError').innerHTML='<div class="notice error">'+esc(err.message)+'</div>'}
+  finally{button.disabled=false}
 });
-$('#logout').onclick=async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch{}location.reload()};
-$('#tabs').onclick=e=>{const btn=e.target.closest('[data-view]');if(btn)show(btn.dataset.view)};
-async function show(next){
-  view=next;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===next));
-  $('#viewBody').innerHTML='<div class="hint">Загружаем данные…</div>';$('#message').innerHTML='';
+qs('#logout').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch{}showLogin();toast('Вы вышли из кабинета')});
+function closeMenu(){qs('#sidebar').classList.remove('open');qs('#overlay').classList.add('hidden')}
+qs('#mobileMenu').addEventListener('click',()=>{qs('#sidebar').classList.toggle('open');qs('#overlay').classList.toggle('hidden')});
+qs('#overlay').addEventListener('click',closeMenu);
+qs('#navigation').addEventListener('click',e=>{const btn=e.target.closest('[data-page]');if(btn)go(btn.dataset.page)});
+function heading(title,subtitle,action=''){
+  return '<div class="head"><div><h1>'+esc(title)+'</h1><p class="subtitle">'+esc(subtitle)+'</p></div>'+action+'</div>';
+}
+function nothing(text){return '<div class="empty"><span class="emoji">🧼</span><strong>Пока пусто</strong>'+esc(text)+'</div>'}
+function badge(status){return '<span class="tag '+esc(status)+'">'+esc(statusNames[status]||status)+'</span>'}
+function prettyDate(date){if(!date)return '—';const d=new Date(date);return Number.isNaN(d.getTime())?'—':d.toLocaleString('ru-RU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+async function go(page){
+  if(!sections[page])return;state.page=page;
+  qa('[data-page]',qs('#navigation')).forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  qs('#breadcrumb').textContent=sections[page];closeMenu();
+  qs('#mainView').innerHTML='<div class="panel" style="min-height:180px;color:#7993b8">Загрузка…</div>';
   try{
-    if(next==='dashboard')await dashboard();
-    if(next==='bookings')await bookingView();
-    if(next==='prices')await pricesView();
-    if(next==='projects')await projectsView();
-  }catch(e){alertMessage(e.message,true)}
+    if(page==='overview')await overview();
+    else if(page==='orders')await orders();
+    else if(page==='prices')await prices();
+    else if(page==='gallery')await gallery();
+  }catch(e){qs('#mainView').innerHTML=heading('Не удалось загрузить',e.message)+'<div class="notice error">'+esc(e.message)+'</div>';dbWarning()}
 }
-async function dashboard(){
-  const data=await api('/api/admin/stats');const t=data.totals||{};
-  $('#viewBody').innerHTML='<h2>Обзор заявок</h2><div class="grid">'+
-    [['Всего',t.total],['Новых',t.new_count],['За 7 дней',t.last_week],['Выполнено',t.completed]]
-    .map(([label,value])=>'<div class="metric"><div>'+esc(label)+'</div><strong>'+esc(value??0)+'</strong></div>').join('')+
-    '</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-top:25px">'+
-    '<div><h3>Популярные услуги</h3>'+(data.services||[]).map(x=>'<p>'+esc(x.service)+' — <b>'+esc(x.count)+'</b></p>').join('')+'</div>'+
-    '<div><h3>Города</h3>'+(data.cities||[]).map(x=>'<p>'+esc(x.city)+' — <b>'+esc(x.count)+'</b></p>').join('')+'</div></div>';
+function dbWarning(){
+  qs('#dbStatus').className='status warn';qs('#dbStatus').textContent='База не подключена';
 }
-async function bookingView(){
-  bookings=await api('/api/admin/bookings');
-  $('#viewBody').innerHTML='<h2>Заявки клиентов</h2><div class="toolbar"><span class="hint">Последние 300 заявок</span><button class="secondary right" id="refreshBookings">Обновить</button></div>'+
-  '<div class="table-wrap"><table><thead><tr><th>Заявка</th><th>Контакты</th><th>Услуга / город</th><th>Дата</th><th>Статус</th><th></th></tr></thead><tbody>'+
-    bookings.map(b=>'<tr><td><b>#'+esc(b.id)+'</b><br><span class="hint">'+esc(new Date(b.created_at).toLocaleString('ru-RU'))+'</span></td>'+
-      '<td>'+esc(b.name)+'<br><a href="tel:'+encodeURIComponent(b.phone)+'">'+esc(b.phone)+'</a></td>'+
-      '<td>'+esc(b.service)+'<br>'+esc(b.city)+(b.details?'<p class="hint">'+esc(b.details)+'</p>':'')+'</td>'+
-      '<td>'+esc((b.preferred_date||'').slice(0,10))+' '+esc(b.preferred_time||'')+'</td>'+
-      '<td><select data-status="'+esc(b.id)+'">'+Object.keys(statuses).map(k=>'<option value="'+k+'" '+(b.status===k?'selected':'')+'>'+statuses[k]+'</option>').join('')+'</select></td>'+
-      '<td><button class="danger small" data-delete-booking="'+esc(b.id)+'">Удалить</button></td></tr>').join('')+
-  '</tbody></table></div>'+(bookings.length?'':'<p>Пока нет заявок.</p>');
-  $('#refreshBookings').onclick=bookingView;
-  document.querySelectorAll('[data-status]').forEach(el=>el.onchange=async()=>{try{await api('/api/admin/bookings/'+el.dataset.status,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:el.value})});alertMessage('Статус обновлён')}catch(e){alertMessage(e.message,true)}});
-  document.querySelectorAll('[data-delete-booking]').forEach(el=>el.onclick=async()=>{if(!confirm('Удалить заявку без возможности восстановления?'))return;try{await api('/api/admin/bookings/'+el.dataset.deleteBooking,{method:'DELETE'});bookingView()}catch(e){alertMessage(e.message,true)}});
+function dbReady(){
+  qs('#dbStatus').className='status';qs('#dbStatus').textContent='● PostgreSQL подключена';
 }
-async function pricesView(){
-  prices=await api('/api/admin/prices');const categories=Object.keys(prices);
-  $('#viewBody').innerHTML='<h2>Управление ценами</h2><p class="hint">Изменения сразу отображаются в публичном прайсе после сохранения. Все суммы вводите с единицами, например «от 55 BYN».</p>'+
-    '<div class="toolbar"><label>Раздел <select id="categoryPick">'+categories.map(c=>'<option value="'+esc(c)+'">'+esc(prices[c].label)+'</option>').join('')+'</select></label><button class="primary right" id="savePrices">Сохранить цены</button></div><div id="cardsEditor"></div>';
-  $('#categoryPick').onchange=renderPriceEditor;
-  $('#savePrices').onclick=savePrices;
-  renderPriceEditor();
+async function overview(){
+  const data=await api('/api/admin/stats');dbReady();
+  const t=data.totals||{};qs('#newCount').textContent=t.new_count||0;
+  const [recent]=await Promise.all([api('/api/admin/bookings')]);
+  state.orders=recent;
+  const stats=[
+    ['Всего заявок',t.total||0,'▤',''],['Новые',t.new_count||0,'✳','orange'],
+    ['За 7 дней',t.last_week||0,'◴','violet'],['Выполнено',t.completed||0,'✓','green']];
+  const bars=(entries,key)=>{if(!entries?.length)return nothing('Данные появятся после первой заявки.');let max=Math.max(...entries.map(x=>x.count||0),1);
+    return '<div class="bars">'+entries.map(x=>'<div class="bar-row"><span title="'+esc(x[key])+'">'+esc(x[key])+'</span><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(3,Math.round(100*(x.count||0)/max))+'%"></div></div><b>'+esc(x.count)+'</b></div>').join('')+'</div>';
+  };
+  qs('#mainView').innerHTML=
+    heading('Добро пожаловать! 👋','Вся информация о вашем клининговом бизнесе — на одном экране.','<button class="btn" id="refresh">↻ Обновить данные</button>')+
+    '<div class="stats">'+stats.map(s=>'<div class="stat"><div class="stat-icon '+s[3]+'">'+s[2]+'</div><div class="value">'+esc(s[1])+'</div><div class="name">'+s[0]+'</div></div>').join('')+'</div>'+
+    '<div class="two"><div class="panel"><div class="panel-head"><div><h2>Популярные услуги</h2><p>На основе обращений клиентов</p></div></div>'+bars(data.services,'service')+
+    '<div class="line"></div><div class="panel-head"><h2>Города заказов</h2></div>'+bars(data.cities,'city')+'</div>'+
+    '<div class="panel"><div class="panel-head"><div><h2>Последние заявки</h2><p>Новые обращения с сайта</p></div><button class="btn sm soft" id="toOrders">Все заявки →</button></div><div class="orders-grid">'+
+    (recent.length?recent.slice(0,5).map(b=>'<div class="order"><div><div class="order-title">'+esc(b.name)+' · '+esc(b.service)+'</div><div class="order-meta">'+esc(b.city)+' • '+prettyDate(b.created_at)+'</div><a href="tel:'+esc(b.phone.replace(/[^+\d]/g,''))+'">'+esc(b.phone)+'</a></div>'+badge(b.status)+'</div>').join(''):nothing('Заявок пока нет.'))+
+    '</div></div></div>';
+  qs('#refresh').onclick=()=>go('overview');qs('#toOrders').onclick=()=>go('orders');
+}
+async function orders(){
+  state.orders=await api('/api/admin/bookings');dbReady();
+  qs('#mainView').innerHTML=heading('Заявки клиентов','Контакты, статусы и обращения. Всё сохраняется в базе PostgreSQL.',
+    '<button class="btn soft" id="exportCSV">↓ Скачать CSV</button><button class="btn" id="refreshOrders">↻ Обновить</button>')+
+    '<div class="panel"><div class="toolbar"><div class="filters"><input id="orderSearch" class="input" placeholder="🔎 Имя, телефон, услуга или город" aria-label="Поиск заявок" autocomplete="off">'+
+    '<select class="select" id="statusFilter" aria-label="Фильтр статусов"><option value="all">Все статусы</option>'+Object.entries(statusNames).map(([key,value])=>'<option value="'+key+'">'+esc(value)+'</option>').join('')+'</select></div>'+
+    '<strong id="orderCount" style="font-size:12px;color:#8091a9"></strong></div><div class="table-scroll" id="orderTable"></div></div>';
+  qs('#orderSearch').value=state.search;qs('#statusFilter').value=state.filter;
+  qs('#orderSearch').oninput=e=>{state.search=e.target.value;renderOrders()};
+  qs('#statusFilter').onchange=e=>{state.filter=e.target.value;renderOrders()};
+  qs('#exportCSV').onclick=exportCSV;
+  qs('#refreshOrders').onclick=()=>go('orders');
+  renderOrders();
+}
+function visibleOrders(){
+  const term=state.search.trim().toLocaleLowerCase();
+  return state.orders.filter(b=>(state.filter==='all'||b.status===state.filter)&&
+    (!term||[b.name,b.phone,b.service,b.city,b.details,String(b.id)].some(v=>String(v||'').toLocaleLowerCase().includes(term))));
+}
+function renderOrders(){
+  const list=visibleOrders();qs('#orderCount').textContent='Найдено: '+list.length;
+  if(!list.length){qs('#orderTable').innerHTML=nothing('Заявок с такими параметрами нет.');return}
+  qs('#orderTable').innerHTML='<table class="table"><thead><tr><th>Клиент / контакт</th><th>Услуга</th><th>Дата / город</th><th>Статус</th><th>Действия</th></tr></thead><tbody>'+
+    list.map(b=>'<tr><td><b>'+esc(b.name)+'</b><br><a class="phone" href="tel:'+esc(b.phone.replace(/[^+\d]/g,''))+'">'+esc(b.phone)+'</a><div class="detail">#'+esc(b.id)+'</div></td>'+
+      '<td><b>'+esc(b.service)+'</b><div class="detail">'+esc(b.details||'Комментарий не указан')+'</div></td>'+
+      '<td>'+esc(b.city)+'<div class="detail">Создана: '+prettyDate(b.created_at)+'</div><div class="detail">Желаемое время: '+esc(b.preferred_date?String(b.preferred_date).slice(0,10):'—')+' '+esc(b.preferred_time||'')+'</div></td>'+
+      '<td><select data-update="'+esc(b.id)+'" aria-label="Статус заявки '+esc(b.id)+'">'+Object.entries(statusNames).map(([value,label])=>'<option value="'+value+'"'+(b.status===value?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></td>'+
+      '<td><button class="btn sm danger" data-remove="'+esc(b.id)+'" title="Удалить заявку">Удалить</button></td></tr>').join('')+
+    '</tbody></table>';
+  qa('[data-update]',qs('#orderTable')).forEach(input=>input.onchange=async()=>{
+    const id=Number(input.dataset.update),next=input.value;input.disabled=true;
+    try{await api('/api/admin/bookings/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});const target=state.orders.find(x=>Number(x.id)===id);if(target)target.status=next;toast('Статус обновлён');if(state.filter!=='all')renderOrders()}
+    catch(e){toast(e.message,true);renderOrders()}finally{input.disabled=false}
+  });
+  qa('[data-remove]',qs('#orderTable')).forEach(button=>button.onclick=async()=>{
+    const id=Number(button.dataset.remove);
+    if(!confirm('Удалить заявку #'+id+' навсегда?'))return;
+    button.disabled=true;
+    try{await api('/api/admin/bookings/'+id,{method:'DELETE'});state.orders=state.orders.filter(b=>Number(b.id)!==id);renderOrders();toast('Заявка удалена')}
+    catch(e){toast(e.message,true);button.disabled=false}
+  });
+}
+function csvValue(value){let s=String(value??'').replace(/\r?\n/g,' ');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
+function exportCSV(){
+  const columns=[['id','ID'],['created_at','Создана'],['name','Имя'],['phone','Телефон'],['service','Услуга'],['city','Город'],['preferred_date','Дата'],['preferred_time','Время'],['details','Комментарий'],['status','Статус']];
+  const rows=[columns.map(x=>csvValue(x[1])).join(';'),...visibleOrders().map(item=>columns.map(([key])=>csvValue(item[key])).join(';'))];
+  const blob=new Blob(['\ufeff'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='nash-klining-zayavki.csv';a.click();URL.revokeObjectURL(url);toast('CSV с заявками подготовлен');
+}
+async function prices(){
+  state.prices=await api('/api/admin/prices');dbReady();
+  const keys=Object.keys(state.prices);
+  if(!keys.length)throw Error('В прайс-листе нет категорий');
+  if(!state.category||!keys.includes(state.category))state.category=keys[0];
+  qs('#mainView').innerHTML=heading('Управление прайсом','Редактируйте стоимость прямо здесь. После сохранения цены обновятся для клиентов.',
+    '<button class="btn primary" id="saveAllPrices">✓ Сохранить цены</button>')+
+    '<div class="panel"><div class="notice" style="margin-bottom:17px">💡 Меняйте названия и стоимость, добавляйте новые позиции. Все значения указаны в белорусских рублях (BYN).</div><div class="category-tabs" id="priceTabs">'+
+    keys.map(k=>'<button type="button" data-category="'+esc(k)+'" class="'+(k===state.category?'active':'')+'">'+esc(state.prices[k].label)+'</button>').join('')+
+    '</div><div class="price-groups" id="priceEditor"></div><div class="line"></div><button class="btn primary" id="saveBelow">Сохранить изменения →</button></div>';
+  qa('[data-category]',qs('#priceTabs')).forEach(b=>b.onclick=()=>{state.category=b.dataset.category;qa('[data-category]',qs('#priceTabs')).forEach(x=>x.classList.toggle('active',x===b));renderPriceEditor()});
+  qs('#saveAllPrices').onclick=savePrices;qs('#saveBelow').onclick=savePrices;renderPriceEditor();
 }
 function renderPriceEditor(){
-  const cat=$('#categoryPick').value,p=prices[cat];
-  $('#cardsEditor').innerHTML=p.cards.map((card,j)=>'<div class="group"><h3>'+esc(card.name)+'</h3><p class="hint">'+esc(card.desc)+'</p>'+
-   '<div class="price-lines">'+card.items.map(([name,price],i)=>'<div class="price-line"><input aria-label="Название услуги" data-cat="'+esc(cat)+'" data-card="'+j+'" data-item="'+i+'" data-key="0" value="'+esc(name)+'">'+
-      '<input aria-label="Стоимость" data-cat="'+esc(cat)+'" data-card="'+j+'" data-item="'+i+'" data-key="1" value="'+esc(price)+'">'+
-      '<button class="danger small" data-remove="'+j+':'+i+'" type="button" title="Убрать позицию">×</button></div>').join('')+'</div>'+
-   '<button class="secondary small" data-add="'+j+'" type="button">+ Добавить позицию</button></div>').join('')+
-   '<div class="toolbar"><button class="primary" id="savePricesBottom">Сохранить изменения</button></div>';
-  document.querySelectorAll('[data-key]').forEach(input=>input.oninput=()=>{
-    const {cat,card,item,key}=input.dataset;prices[cat].cards[Number(card)].items[Number(item)][Number(key)]=input.value;
+  const category=state.category;
+  qs('#priceEditor').innerHTML=state.prices[category].cards.map((card,i)=>'<article class="price-card"><h3>'+esc(card.name)+'</h3><p>'+esc(card.desc)+'</p>'+
+    card.items.map(([name,cost],j)=>'<div class="price-row"><input aria-label="Название услуги" data-price-name="'+i+':'+j+'" value="'+esc(name)+'">'+
+      '<input aria-label="Цена" data-price-cost="'+i+':'+j+'" value="'+esc(cost)+'"><button class="btn sm danger" data-price-remove="'+i+':'+j+'" title="Удалить позицию">×</button></div>').join('')+
+    '<button type="button" class="btn sm soft" data-price-add="'+i+'" style="margin-top:10px">+ Добавить услугу</button></article>').join('');
+  qa('[data-price-name]',qs('#priceEditor')).forEach(inp=>inp.oninput=()=>{const [i,j]=inp.dataset.priceName.split(':').map(Number);state.prices[category].cards[i].items[j][0]=inp.value});
+  qa('[data-price-cost]',qs('#priceEditor')).forEach(inp=>inp.oninput=()=>{const [i,j]=inp.dataset.priceCost.split(':').map(Number);state.prices[category].cards[i].items[j][1]=inp.value});
+  qa('[data-price-add]',qs('#priceEditor')).forEach(btn=>btn.onclick=()=>{state.prices[category].cards[Number(btn.dataset.priceAdd)].items.push(['Новая услуга','от 0 BYN']);renderPriceEditor()});
+  qa('[data-price-remove]',qs('#priceEditor')).forEach(btn=>btn.onclick=()=>{
+    const [i,j]=btn.dataset.priceRemove.split(':').map(Number);state.prices[category].cards[i].items.splice(j,1);renderPriceEditor();
   });
-  document.querySelectorAll('[data-add]').forEach(button=>button.onclick=()=>{
-    prices[cat].cards[Number(button.dataset.add)].items.push(['Новая услуга','от 0 BYN']);renderPriceEditor();
-  });
-  document.querySelectorAll('[data-remove]').forEach(button=>button.onclick=()=>{
-    const [j,i]=button.dataset.remove.split(':').map(Number);
-    prices[cat].cards[j].items.splice(i,1);renderPriceEditor();
-  });
-  $('#savePricesBottom').onclick=savePrices;
 }
 async function savePrices(){
-  try{await api('/api/admin/prices',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(prices)});alertMessage('Цены сохранены. Клиенты увидят новый прайс после обновления страницы.')}
-  catch(e){alertMessage(e.message,true)}
+  const buttons=[qs('#saveAllPrices'),qs('#saveBelow')];buttons.forEach(b=>b.disabled=true);
+  try{await api('/api/admin/prices',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state.prices)});toast('Цены сохранены в PostgreSQL')}
+  catch(e){toast(e.message,true)}finally{buttons.forEach(b=>b.disabled=false)}
 }
-async function projectsView(){
-  projects=await api('/api/projects');
-  $('#viewBody').innerHTML='<h2>Работы «До / После»</h2><p class="hint">Добавляйте фотографии реальных работ: PNG, JPG или WebP, до 4 МБ каждая.</p>'+
-    '<form id="projectForm" class="group"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))"><label class="field">Название<input name="title" required maxlength="120" placeholder="Химчистка дивана"></label>'+
-    '<label class="field">Категория<input name="category" required maxlength="100" placeholder="Мебель"></label>'+
-    '<label class="field">До<input type="file" name="before" accept="image/jpeg,image/png,image/webp" required></label>'+
-    '<label class="field">После<input type="file" name="after" accept="image/jpeg,image/png,image/webp" required></label></div>'+
-    '<label class="field">Описание<input name="description" maxlength="500" placeholder="Удаление пятен и запахов"></label><button type="submit" class="primary">Добавить работу</button></form>'+
-    '<h3>Опубликованные работы</h3><div class="projects">'+projects.map(p=>'<div class="project"><div class="photos"><img alt="До" loading="lazy" src="/api/projects/'+p.id+'/before"><img alt="После" loading="lazy" src="/api/projects/'+p.id+'/after"></div>'+
-     '<h3>'+esc(p.title)+'</h3><p class="hint">'+esc(p.category)+' • '+esc(p.description)+'</p><button class="danger small" data-delete-project="'+esc(p.id)+'">Удалить</button></div>').join('')+'</div>';
-  $('#projectForm').onsubmit=async e=>{
-    e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;
-    try{await api('/api/admin/projects',{method:'POST',body:new FormData(e.currentTarget)});alertMessage('Работа добавлена');projectsView()}
-    catch(e){alertMessage(e.message,true)}finally{b.disabled=false}
+async function gallery(){
+  state.projects=await api('/api/projects');dbReady();
+  qs('#mainView').innerHTML=heading('Работы до / после','Загружайте фотографии настоящих заказов — они появятся на сайте.')+
+    '<div class="panel" style="margin-bottom:19px"><div class="panel-head"><div><h2>Добавить новую работу</h2><p>Изображения JPG, PNG или WebP, каждое до 4 МБ.</p></div></div>'+
+    '<form id="workForm"><div class="form-grid"><label class="field">Название работы<input name="title" maxlength="120" required placeholder="Химчистка дивана"></label>'+
+    '<label class="field">Категория<input name="category" maxlength="100" required placeholder="Химчистка мебели"></label>'+
+    '<label class="field">Фотография ДО<input class="file-input" type="file" accept="image/jpeg,image/png,image/webp" name="before" required></label>'+
+    '<label class="field">Фотография ПОСЛЕ<input class="file-input" type="file" accept="image/jpeg,image/png,image/webp" name="after" required></label></div>'+
+    '<label class="field">Описание (необязательно)<textarea class="textarea" name="description" rows="2" maxlength="500" placeholder="Какие работы выполнялись?"></textarea></label>'+
+    '<button class="btn primary" type="submit">＋ Опубликовать работу</button></form></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Опубликованные работы</h2><span style="color:#8797ad;font-size:12px">'+state.projects.length+' шт.</span></div><div class="projects">'+
+    (state.projects.length?state.projects.map(p=>'<article class="project"><div class="project-images"><figure><img loading="lazy" alt="До химчистки" src="/api/projects/'+esc(p.id)+'/before"><figcaption>До</figcaption></figure><figure><img loading="lazy" alt="После химчистки" src="/api/projects/'+esc(p.id)+'/after"><figcaption>После</figcaption></figure></div>'+
+      '<div class="project-body"><h3>'+esc(p.title)+'</h3><p>'+esc(p.category)+(p.description?' · '+esc(p.description):'')+'</p><button type="button" class="btn sm danger" data-delete-project="'+esc(p.id)+'">Удалить</button></div></article>').join(''):nothing('Загрузите первую фотографию до/после.'))+'</div></div>';
+  qs('#workForm').onsubmit=async e=>{
+    e.preventDefault();const form=e.currentTarget,button=qs('button[type=submit]',form);
+    const files=[form.elements.before.files?.[0],form.elements.after.files?.[0]];
+    if(files.some(f=>!f||f.size>4*1024*1024)){toast('Фотографии должны быть не больше 4 МБ',true);return}
+    button.disabled=true;button.textContent='Публикация…';
+    try{await api('/api/admin/projects',{method:'POST',body:new FormData(form)});toast('Работа добавлена');go('gallery')}
+    catch(err){toast(err.message,true)}finally{button.disabled=false;button.textContent='＋ Опубликовать работу'}
   };
-  document.querySelectorAll('[data-delete-project]').forEach(b=>b.onclick=async()=>{if(!confirm('Удалить опубликованную работу?'))return;try{await api('/api/admin/projects/'+b.dataset.deleteProject,{method:'DELETE'});projectsView()}catch(e){alertMessage(e.message,true)}});
+  qa('[data-delete-project]').forEach(button=>button.onclick=async()=>{
+    if(!confirm('Удалить фотографию работы с сайта?'))return;
+    button.disabled=true;
+    try{await api('/api/admin/projects/'+button.dataset.deleteProject,{method:'DELETE'});toast('Работа удалена');go('gallery')}
+    catch(err){toast(err.message,true);button.disabled=false}
+  });
 }
-api('/api/admin/me').then(authenticated).catch(()=>{});
-</script></body></html>
+api('/api/admin/me').then(showApp).catch(()=>showLogin());
+</script>
+</body>
+</html>
