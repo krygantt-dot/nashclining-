@@ -245,6 +245,62 @@ html.motion-on .hero-art .bubble-field .bubble {
   .price-tabs-shell.has-more::after {opacity:1}
 }
 </style>
+
+<style id="iosModalViewportFix">
+/* Prevent horizontal page movement at any viewport size. Normal vertical page scrolling remains. */
+html,body{width:100%;max-width:100%;overflow-x:clip;overscroll-behavior-x:none}
+body{min-width:0}
+body.order-scroll-locked{
+  position:fixed!important;
+  left:0;right:0;top:var(--order-lock-top,0px);
+  width:100%!important;max-width:100%!important;height:100%;
+  overflow:hidden!important;overscroll-behavior:none;
+}
+html.order-scroll-locked{overflow:hidden!important;overscroll-behavior:none}
+.order-backdrop{
+  box-sizing:border-box;inset:0;width:100%;max-width:100%;
+  height:100vh;height:100dvh;
+  min-width:0;max-height:100dvh;
+  overflow:hidden;overscroll-behavior:contain;
+  padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+}
+.order-backdrop.open{display:flex;align-items:center;justify-content:center}
+.order-backdrop .order-panel{
+  box-sizing:border-box;position:relative;
+  flex:0 1 530px;min-width:0;width:100%;max-width:100%;
+  max-height:calc(100vh - 24px);
+  max-height:calc(100dvh - max(24px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 24px));
+  overflow-x:hidden;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  overflow-wrap:break-word;
+  touch-action:pan-y;
+}
+.order-panel form,.order-panel .field,.order-panel p,.order-panel div,.order-panel label{
+  min-width:0;max-width:100%;
+}
+.order-panel .field input,
+.order-panel .field select,
+.order-panel .field textarea{
+  box-sizing:border-box;min-width:0;width:100%;max-width:100%;
+}
+@media(max-width:700px){
+  .order-backdrop{padding:10px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+  .order-backdrop .order-panel{
+    flex:1 1 auto;min-width:0;max-width:100%;
+    max-height:calc(100vh - 20px);
+    max-height:calc(100dvh - 20px - env(safe-area-inset-bottom));
+    padding:24px 19px;
+    border-radius:22px;
+  }
+  .order-panel h2{font-size:clamp(23px,6vw,27px);padding-right:28px}
+  /* iOS Safari zooms the entire web page when focused inputs use font sizes below 16px. */
+  .order-panel .field input,
+  .order-panel .field select,
+  .order-panel .field textarea{font-size:16px!important;line-height:1.35}
+  .order-panel .order-submit{max-width:100%}
+}
+</style>
 </head>
 <body>
 <div class="site-bg"><div class="ambient a"></div><div class="ambient b"></div></div>
@@ -388,9 +444,35 @@ fetch('/api/prices').then(r=>r.ok?r.json():null).then(data=>{
     renderPrices(Object.hasOwn(prices,activePrice)?activePrice:Object.keys(prices)[0]);
   }
 }).catch(()=>{});
-const backdrop=document.getElementById('orderBackdrop'),modalService=document.getElementById('orderService'),closeBtn=document.getElementById('closeOrder');let returnFocus;
-function openOrder(service){returnFocus=document.activeElement;if(service&&[...modalService.options].some(o=>o.value===service))modalService.value=service;backdrop.classList.add('open');backdrop.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';closeBtn.focus();}
-function closeOrder(){backdrop.classList.remove('open');backdrop.setAttribute('aria-hidden','true');document.body.style.overflow='';returnFocus?.focus?.()}
+const backdrop=document.getElementById('orderBackdrop'),modalService=document.getElementById('orderService'),closeBtn=document.getElementById('closeOrder');let returnFocus,orderScrollY=0;
+function openOrder(service){
+  if(backdrop.classList.contains('open'))return;
+  returnFocus=document.activeElement;
+  if(service&&[...modalService.options].some(o=>o.value===service))modalService.value=service;
+  // Fix the underlying page in place while the long dialog itself can scroll vertically.
+  orderScrollY=window.scrollY||window.pageYOffset||0;
+  document.body.style.setProperty('--order-lock-top','-'+orderScrollY+'px');
+  document.documentElement.classList.add('order-scroll-locked');
+  document.body.classList.add('order-scroll-locked');
+  backdrop.classList.add('open');backdrop.setAttribute('aria-hidden','false');
+  const panel=backdrop.querySelector('.order-panel');
+  if(panel)panel.scrollTop=0;
+  closeBtn.focus({preventScroll:true});
+}
+function closeOrder(){
+  if(!backdrop.classList.contains('open'))return;
+  // Blur focused controls before restoring the viewport: avoids iOS Safari zoom/scroll jumps.
+  if(backdrop.contains(document.activeElement))document.activeElement.blur();
+  backdrop.classList.remove('open');backdrop.setAttribute('aria-hidden','true');
+  document.body.classList.remove('order-scroll-locked');
+  document.documentElement.classList.remove('order-scroll-locked');
+  document.body.style.removeProperty('--order-lock-top');
+  const oldBehavior=document.documentElement.style.scrollBehavior;
+  document.documentElement.style.scrollBehavior='auto';
+  window.scrollTo(0,orderScrollY);
+  document.documentElement.style.scrollBehavior=oldBehavior;
+  if(returnFocus&&returnFocus.isConnected)try{returnFocus.focus({preventScroll:true})}catch{}
+}
 document.addEventListener('click',e=>{const s=e.target.closest('[data-service]');if(s){openOrder(s.dataset.service);return}if(e.target.closest('[data-order]'))openOrder();});closeBtn.addEventListener('click',closeOrder);backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeOrder()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&backdrop.classList.contains('open'))closeOrder();if(e.key==='Tab'&&backdrop.classList.contains('open')){const focusables=[...backdrop.querySelectorAll('button,input,select,textarea,a[href]')].filter(x=>x.offsetParent!==null);const first=focusables[0],last=focusables[focusables.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
 document.getElementById('orderForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -412,7 +494,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
     form.reset();
   }catch(err){
     status.style.color='#a33b44';
-    status.textContent=err.message+' Можно отправить заявку напрямую через WhatsApp: ';
+    status.textContent=(err instanceof TypeError?'Не удалось подключиться к серверу. Проверьте интернет и попробуйте повторно.':err.message)+' Можно отправить заявку напрямую через WhatsApp: ' ;
     const wa=document.createElement('a');
     wa.textContent='Написать в WhatsApp ↗';
     wa.href='https://wa.me/'+PHONE+'?text='+encodeURIComponent(
