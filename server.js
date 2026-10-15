@@ -29,22 +29,45 @@ const db = DB_URL ? new Pool({
   connectionString:DB_URL, max:5, connectionTimeoutMillis:8000, idleTimeoutMillis:30000,
   ...(process.env.DATABASE_SSL === 'true' ? {ssl:{rejectUnauthorized:true}} : {})
 }) : null;
-if(db) db.on('error',e=>console.error('PostgreSQL idle connection error:',e.message));
 let databaseReady = false;
-async function initialize() {
-  if(!db) return;
-  try {
-    await db.query("CREATE TABLE IF NOT EXISTS bookings (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), name VARCHAR(90) NOT NULL, phone VARCHAR(40) NOT NULL, service VARCHAR(180) NOT NULL, city VARCHAR(90) NOT NULL, preferred_date DATE, preferred_time VARCHAR(30), details VARCHAR(2000) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'new')");
-    await db.query("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
-    await db.query("CREATE TABLE IF NOT EXISTS projects (id BIGSERIAL PRIMARY KEY, title VARCHAR(120) NOT NULL, category VARCHAR(100) NOT NULL, description VARCHAR(500) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), before_image BYTEA NOT NULL, before_type VARCHAR(24) NOT NULL, after_image BYTEA NOT NULL, after_type VARCHAR(24) NOT NULL)");
-    await db.query('INSERT INTO site_settings(key,value) VALUES ($1,$2::jsonb) ON CONFLICT(key) DO NOTHING', ['prices',JSON.stringify(defaultPrices)]);
-    databaseReady = true; console.log('PostgreSQL initialized');
-  } catch(err) { databaseReady = false; console.error('PostgreSQL initialization failed:',err.message); }
+let initializing = null;
+let lastDbError = '';
+if(db) db.on('error',e=>{databaseReady=false;lastDbError=e.message;console.error('PostgreSQL idle connection error:',e.message);});
+async function initialize(){
+  if(!db)return false;
+  if(initializing)return initializing;
+  initializing=(async()=>{
+    try{
+      await db.query("CREATE TABLE IF NOT EXISTS bookings (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), name VARCHAR(90) NOT NULL, phone VARCHAR(40) NOT NULL, service VARCHAR(180) NOT NULL, city VARCHAR(90) NOT NULL, preferred_date DATE, preferred_time VARCHAR(30), details VARCHAR(2000) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'new')");
+      await db.query("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+      await db.query("CREATE TABLE IF NOT EXISTS projects (id BIGSERIAL PRIMARY KEY, title VARCHAR(120) NOT NULL, category VARCHAR(100) NOT NULL, description VARCHAR(500) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), before_image BYTEA NOT NULL, before_type VARCHAR(24) NOT NULL, after_image BYTEA NOT NULL, after_type VARCHAR(24) NOT NULL)");
+      await db.query("CREATE INDEX IF NOT EXISTS bookings_recent_idx ON bookings(created_at DESC)");
+      await db.query("CREATE INDEX IF NOT EXISTS bookings_status_recent_idx ON bookings(status,created_at DESC)");
+      await db.query("INSERT INTO site_settings(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING",['prices',JSON.stringify(defaultPrices)]);
+      databaseReady=true;
+      lastDbError='';
+      console.log('PostgreSQL initialized: bookings, prices and projects ready');
+      return true;
+    }catch(err){
+      databaseReady=false;lastDbError=err.message;
+      console.error('PostgreSQL unavailable (will retry):',err.message);
+      return false;
+    }
+  })();
+  try{return await initializing}finally{initializing=null}
 }
-let setup = initialize();
-async function needDB(req,res,next) {
-  await setup;
-  if(!db || !databaseReady) return res.status(503).json({error:'База данных пока не подключена. Позвоните нам или напишите в WhatsApp.'});
+void initialize();
+if(db){
+  const checkTimer=setInterval(async()=>{
+    if(!databaseReady){await initialize();return;}
+    try{await db.query('SELECT 1')}
+    catch(err){databaseReady=false;lastDbError=err.message;console.error('PostgreSQL connection lost:',err.message);}
+  },30000);
+  checkTimer.unref?.();
+}
+async function needDB(req,res,next){
+  if(!databaseReady)await initialize();
+  if(!db||!databaseReady)return res.status(503).json({error:'База данных временно недоступна. Напишите в WhatsApp или попробуйте позже.'});
   next();
 }
 const sessions = new Map();
@@ -101,7 +124,7 @@ async function telegram(message) {
     }finally{clearTimeout(timeout);}
   }catch(e){console.error('Telegram unavailable:',e.message);}
 }
-app.get('/health',(req,res)=>res.json({ok:true,db:databaseReady?'ready':'not-configured'}));
+app.get('/health',(req,res)=>res.set('Cache-Control','no-store').json({ok:true,db:databaseReady?'ready':(db?'connecting':'not-configured')}));
 app.get('/api/prices',guard(async(req,res)=>{
   if(!databaseReady)return res.json(defaultPrices);
   const result=await db.query("SELECT value FROM site_settings WHERE key='prices'");
