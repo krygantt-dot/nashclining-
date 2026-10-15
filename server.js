@@ -164,14 +164,14 @@ function guard(fn){return(req,res,next)=>Promise.resolve(fn(req,res,next)).catch
 
 const TELEGRAM_CONFIGURED=Boolean(TELEGRAM_TOKEN&&TELEGRAM_CHAT);
 let sendingTelegramNotifications=false;
-async function sendTelegramMessage(message){
+async function sendTelegramMessage(message,replyMarkup=null){
   if(!TELEGRAM_CONFIGURED)return {ok:false,error:'Настройте TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в Render'};
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),8000);
   try {
     const response=await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendMessage',{
       method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({chat_id:TELEGRAM_CHAT,text:message,disable_web_page_preview:true}),
+      body:JSON.stringify({chat_id:TELEGRAM_CHAT,text:message,disable_web_page_preview:true,...(replyMarkup?{reply_markup:replyMarkup}:{})}),
       signal:controller.signal
     });
     let result=null;
@@ -185,6 +185,33 @@ async function sendTelegramMessage(message){
     return {ok:true};
   }catch(error){return {ok:false,error:'Нет соединения с Telegram: '+String(error.message||'unknown').slice(0,140)}}
   finally{clearTimeout(timeout)}
+}
+function telegramWhatsAppNumber(rawPhone){
+  // Supported international Belarusian formats: +375 XX XXX XX XX, 80 XX XXX XX XX, 0 XX XXX XX XX.
+  const raw=String(rawPhone||'').trim();
+  const digits=raw.replace(/\D/g,'');
+  if(/^375\d{9}$/.test(digits))return digits;
+  if(/^80\d{9}$/.test(digits))return '375'+digits.slice(2);
+  if(/^0\d{9}$/.test(digits))return '375'+digits.slice(1);
+  if(/^\d{9}$/.test(digits))return '375'+digits;
+  if(raw.startsWith('+')&&/^[1-9]\d{7,14}$/.test(digits))return digits;
+  return null;
+}
+function telegramBookingKeyboard(b){
+  const rows=[];
+  const number=telegramWhatsAppNumber(b.phone);
+  if(number){
+    // Opening the WhatsApp chat does not send a message automatically.
+    const greeting='Здравствуйте, '+String(b.name||'').trim()+'! Это «Наш Клининг». Пишем по вашей заявке №'+b.id+'. Когда вам будет удобно обсудить детали?';
+    rows.push([{text:'💬 Ответить клиенту в WhatsApp',
+      url:'https://wa.me/'+number+'?text='+encodeURIComponent(greeting)}]);
+  }
+  // CopyTextButton is native to Telegram inline keyboards, no extra bot callback is necessary.
+  if(b.phone){
+    rows.push([{text:'📋 Скопировать телефон',copy_text:{text:String(b.phone).slice(0,256)}}]);
+  }
+  rows.push([{text:'📂 Открыть админку',url:'https://nashclining.onrender.com/admin'}]);
+  return {inline_keyboard:rows};
 }
 function telegramBookingMessage(b){
   return [
@@ -228,7 +255,7 @@ async function flushTelegramQueue(){
           " FROM bookings WHERE id=$1",[booking_id]
         );
         if(!booking.rows.length)continue; // ON DELETE CASCADE removes orphan notifications.
-        const delivered=await sendTelegramMessage(telegramBookingMessage(booking.rows[0]));
+        const delivered=await sendTelegramMessage(telegramBookingMessage(booking.rows[0]),telegramBookingKeyboard(booking.rows[0]));
         if(delivered.ok){
           await db.query("UPDATE telegram_notifications SET status='sent',sent_at=now(),locked_at=NULL,last_error=NULL WHERE booking_id=$1",[booking_id]);
           console.log('Telegram: заявка #'+booking_id+' доставлена');
@@ -348,7 +375,8 @@ app.get('/api/admin/telegram/status',auth,needDB,guard(async(req,res)=>{
 app.post('/api/admin/telegram/test',auth,needDB,rateLimit('tgtest',4,60*60*1000),guard(async(req,res)=>{
   if(!TELEGRAM_CONFIGURED)return res.status(503).json({error:'Нужны TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в Render → Environment'});
   const result=await sendTelegramMessage(
-    '✅ ТЕСТ «НАШ КЛИНИНГ»\nБот подключён. Новые заявки будут приходить сюда автоматически с данными клиента.'
+    '✅ ТЕСТ «НАШ КЛИНИНГ»\nБот подключён. Новые заявки будут приходить сюда автоматически с данными клиента.',
+    {inline_keyboard:[[ {text:'📂 Открыть админку',url:'https://nashclining.onrender.com/admin'} ]]}
   );
   if(!result.ok)return res.status(502).json({error:result.error});
   void flushTelegramQueue();
