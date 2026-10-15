@@ -47,6 +47,8 @@ async function initialize(){
       await db.query("CREATE INDEX IF NOT EXISTS admin_sessions_expiry_idx ON admin_sessions(expires_at)");
       await db.query("CREATE TABLE IF NOT EXISTS reviews (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), author VARCHAR(90) NOT NULL, service VARCHAR(130) NOT NULL, rating SMALLINT NOT NULL CHECK(rating BETWEEN 1 AND 5), body VARCHAR(1000) NOT NULL, is_demo BOOLEAN NOT NULL DEFAULT false, is_published BOOLEAN NOT NULL DEFAULT true, avatar_image BYTEA, avatar_type VARCHAR(24))");
       await db.query("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS avatar_url TEXT");
+      await db.query("CREATE TABLE IF NOT EXISTS telegram_notifications (booking_id BIGINT PRIMARY KEY REFERENCES bookings(id) ON DELETE CASCADE, status VARCHAR(20) NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(), locked_at TIMESTAMPTZ, sent_at TIMESTAMPTZ, last_error VARCHAR(250))");
+      await db.query("CREATE INDEX IF NOT EXISTS telegram_notifications_queue_idx ON telegram_notifications(status,next_attempt_at)");
       await db.query("CREATE INDEX IF NOT EXISTS reviews_published_recent_idx ON reviews(is_published,created_at DESC)");
       await db.query("CREATE INDEX IF NOT EXISTS bookings_recent_idx ON bookings(created_at DESC)");
       await db.query("CREATE INDEX IF NOT EXISTS bookings_status_recent_idx ON bookings(status,created_at DESC)");
@@ -150,18 +152,95 @@ function checkOrigin(req,res,next) {
 }
 app.use(checkOrigin);
 function guard(fn){return(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);}
-async function telegram(message) {
-  if(!TELEGRAM_TOKEN||!TELEGRAM_CHAT)return;
+
+const TELEGRAM_CONFIGURED=Boolean(TELEGRAM_TOKEN&&TELEGRAM_CHAT);
+let sendingTelegramNotifications=false;
+async function sendTelegramMessage(message){
+  if(!TELEGRAM_CONFIGURED)return {ok:false,error:'Настройте TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в Render'};
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),8000);
   try {
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),5000);
-    try {
-      const r=await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendMessage',
-        {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:TELEGRAM_CHAT,text:message}),signal:controller.signal});
-      if(!r.ok)console.error('Telegram notification error:',r.status);
-    }finally{clearTimeout(timeout);}
-  }catch(e){console.error('Telegram unavailable:',e.message);}
+    const response=await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendMessage',{
+      method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({chat_id:TELEGRAM_CHAT,text:message,disable_web_page_preview:true}),
+      signal:controller.signal
+    });
+    let result=null;
+    try {result=await response.json()}catch{}
+    if(!response.ok||result?.ok!==true) {
+      const code=response.status||500;
+      const hint=typeof result?.description==='string'?result.description.slice(0,140):'Ошибка Telegram';
+      return {ok:false,error:'Telegram HTTP '+code+': '+hint,
+        retryAfter:Math.min(3600,Math.max(0,Number(result?.parameters?.retry_after)||0))};
+    }
+    return {ok:true};
+  }catch(error){return {ok:false,error:'Нет соединения с Telegram: '+String(error.message||'unknown').slice(0,140)}}
+  finally{clearTimeout(timeout)}
 }
+function telegramBookingMessage(b){
+  return [
+    '🧼 НОВАЯ ЗАЯВКА #'+b.id,
+    '',
+    '👤 Имя: '+b.name,
+    '📱 Телефон: '+b.phone,
+    '🧽 Услуга: '+b.service,
+    '📍 Город: '+b.city,
+    '📅 Дата: '+(b.preferred_date_text||'не указана'),
+    '🕒 Время: '+(b.preferred_time||'не указано'),
+    '💬 Комментарий: '+(b.details||'без комментария'),
+    '',
+    '✅ Заявка сохранена в PostgreSQL',
+    '📋 Админ-панель: https://nashclining.onrender.com/admin'
+  ].join('\n');
+}
+async function flushTelegramQueue(){
+  if(sendingTelegramNotifications||!TELEGRAM_CONFIGURED||!databaseReady)return;
+  sendingTelegramNotifications=true;
+  try{
+    for(let i=0;i<15;i++){
+      // Atomically claim a record; stale claims can be retried after an interrupted deployment.
+      const claimed=await db.query(
+        "WITH task AS ("+
+        " SELECT booking_id FROM telegram_notifications"+
+        " WHERE (status='pending' AND next_attempt_at<=now())"+
+        " OR (status='sending' AND locked_at < now() - interval '2 minutes')"+
+        " ORDER BY booking_id FOR UPDATE SKIP LOCKED LIMIT 1"+
+        ") UPDATE telegram_notifications n"+
+        " SET status='sending',locked_at=now(),attempts=n.attempts+1"+
+        " FROM task WHERE n.booking_id=task.booking_id"+
+        " RETURNING n.booking_id,n.attempts"
+      );
+      if(!claimed.rows.length)break;
+      const {booking_id,attempts}=claimed.rows[0];
+      try {
+        const booking=await db.query(
+          "SELECT id,name,phone,service,city,details,"+
+          " to_char(preferred_date,'DD.MM.YYYY') AS preferred_date_text,preferred_time"+
+          " FROM bookings WHERE id=$1",[booking_id]
+        );
+        if(!booking.rows.length)continue; // ON DELETE CASCADE removes orphan notifications.
+        const delivered=await sendTelegramMessage(telegramBookingMessage(booking.rows[0]));
+        if(delivered.ok){
+          await db.query("UPDATE telegram_notifications SET status='sent',sent_at=now(),locked_at=NULL,last_error=NULL WHERE booking_id=$1",[booking_id]);
+          console.log('Telegram: заявка #'+booking_id+' доставлена');
+        }else{
+          const seconds=Math.max(Number(delivered.retryAfter)||0,Math.min(1800,15*Math.pow(2,Math.min(attempts-1,7))));
+          await db.query("UPDATE telegram_notifications SET status='pending',locked_at=NULL, "+
+              "next_attempt_at=now()+($2::int * interval '1 second'),last_error=$3 WHERE booking_id=$1",
+              [booking_id,seconds,delivered.error.slice(0,250)]);
+          console.error('Telegram: не доставлена заявка #'+booking_id+': '+delivered.error);
+        }
+      }catch(err){
+        await db.query("UPDATE telegram_notifications SET status='pending',locked_at=NULL,next_attempt_at=now()+interval '1 minute',last_error=$2 WHERE booking_id=$1",
+          [booking_id,String(err.message||err).slice(0,250)]).catch(e=>console.error('Telegram retry error:',e.message));
+        console.error('Telegram queue:',err.message);
+      }
+    }
+  }catch(e){console.error('Telegram worker:',e.message)}
+  finally{sendingTelegramNotifications=false}
+}
+const telegramTimer=setInterval(()=>{void flushTelegramQueue()},10000);
+telegramTimer.unref?.();
 app.get('/health',(req,res)=>res.set('Cache-Control','no-store').json({ok:true,db:databaseReady?'ready':(db?'connecting':'not-configured')}));
 app.get('/api/prices',guard(async(req,res)=>{
   if(!databaseReady)return res.json(defaultPrices);
@@ -204,9 +283,25 @@ app.post('/api/bookings',leadLimit,needDB,guard(async(req,res)=>{
   if(date&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date))||date<new Date().toISOString().slice(0,10)))
     return res.status(400).json({error:'Проверьте дату записи'});
   if(time&&!/^\d{2}:\d{2}$/.test(time))return res.status(400).json({error:'Неверный формат времени'});
-  const r=await db.query('INSERT INTO bookings(name,phone,service,city,preferred_date,preferred_time,details) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',[n,p,s,c,date||null,time||null,note]);
-  res.status(201).json({ok:true,id:r.rows[0].id,message:'Заявка принята. Мы свяжемся с вами для подтверждения.'});
-  void telegram('🧼 Новая заявка #'+r.rows[0].id+'\nУслуга: '+s+'\nКлиент: '+n+'\nТелефон: '+p+'\nГород: '+c+'\nДата: '+(date||'не выбрана')+' '+time+'\nКомментарий: '+note);
+  // One transaction guarantees the booking and its notification survive together.
+  const client=await db.connect();
+  let bookingId;
+  try{
+    await client.query('BEGIN');
+    const booking=await client.query(
+      'INSERT INTO bookings(name,phone,service,city,preferred_date,preferred_time,details) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+      [n,p,s,c,date||null,time||null,note]
+    );
+    bookingId=booking.rows[0].id;
+    await client.query('INSERT INTO telegram_notifications(booking_id) VALUES($1)',[bookingId]);
+    await client.query('COMMIT');
+  }catch(error){
+    try{await client.query('ROLLBACK')}catch{}
+    throw error;
+  }finally{client.release()}
+  res.status(201).json({ok:true,id:bookingId,message:'Заявка принята. Мы свяжемся с вами для подтверждения.'});
+  // Dispatch immediately; failed messages remain in PostgreSQL for retries.
+  void flushTelegramQueue();
 }));
 app.post('/api/admin/login',loginLimit,guard(async(req,res)=>{
   if(!ADMIN_PASSWORD||ADMIN_PASSWORD.length<12)return res.status(503).json({error:'Задайте ADMIN_PASSWORD длиной от 12 символов в Render.'});
@@ -228,6 +323,29 @@ app.post('/api/admin/logout',auth,guard(async(req,res)=>{
   res.set('Cache-Control','no-store').json({ok:true});
 }));
 app.get('/api/admin/me',auth,(req,res)=>res.set('Cache-Control','no-store').json({ok:true,username:ADMIN_USER}));
+
+app.get('/api/admin/telegram/status',auth,needDB,guard(async(req,res)=>{
+  const counts=await db.query(
+    "SELECT count(*) FILTER(WHERE status='pending' OR status='sending')::int AS queued,"+
+    " count(*) FILTER(WHERE status='sent')::int AS delivered,"+
+    " max(sent_at) AS last_sent FROM telegram_notifications"
+  );
+  const recent=await db.query("SELECT last_error FROM telegram_notifications WHERE last_error IS NOT NULL ORDER BY booking_id DESC LIMIT 1");
+  res.set('Cache-Control','no-store').json({
+    configured:TELEGRAM_CONFIGURED,tokenSet:Boolean(TELEGRAM_TOKEN),chatSet:Boolean(TELEGRAM_CHAT),
+    ...counts.rows[0],lastError:recent.rows[0]?.last_error||null
+  });
+}));
+app.post('/api/admin/telegram/test',auth,needDB,rateLimit('tgtest',4,60*60*1000),guard(async(req,res)=>{
+  if(!TELEGRAM_CONFIGURED)return res.status(503).json({error:'Нужны TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в Render → Environment'});
+  const result=await sendTelegramMessage(
+    '✅ ТЕСТ «НАШ КЛИНИНГ»\nБот подключён. Новые заявки будут приходить сюда автоматически с данными клиента.'
+  );
+  if(!result.ok)return res.status(502).json({error:result.error});
+  void flushTelegramQueue();
+  res.json({ok:true,message:'Тестовое сообщение отправлено в Telegram'});
+}));
+
 app.get('/api/admin/bookings',auth,needDB,guard(async(req,res)=>{
   const status=safeString(req.query.status,30);
   const sql=statuses.includes(status)?'SELECT * FROM bookings WHERE status=$1 ORDER BY created_at DESC LIMIT 300':'SELECT * FROM bookings ORDER BY created_at DESC LIMIT 300';
