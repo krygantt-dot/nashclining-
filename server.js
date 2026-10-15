@@ -41,6 +41,8 @@ async function initialize(){
       await db.query("CREATE TABLE IF NOT EXISTS bookings (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), name VARCHAR(90) NOT NULL, phone VARCHAR(40) NOT NULL, service VARCHAR(180) NOT NULL, city VARCHAR(90) NOT NULL, preferred_date DATE, preferred_time VARCHAR(30), details VARCHAR(2000) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'new')");
       await db.query("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
       await db.query("CREATE TABLE IF NOT EXISTS projects (id BIGSERIAL PRIMARY KEY, title VARCHAR(120) NOT NULL, category VARCHAR(100) NOT NULL, description VARCHAR(500) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), before_image BYTEA NOT NULL, before_type VARCHAR(24) NOT NULL, after_image BYTEA NOT NULL, after_type VARCHAR(24) NOT NULL)");
+      await db.query("CREATE TABLE IF NOT EXISTS reviews (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), author VARCHAR(90) NOT NULL, service VARCHAR(130) NOT NULL, rating SMALLINT NOT NULL CHECK(rating BETWEEN 1 AND 5), body VARCHAR(1000) NOT NULL, is_demo BOOLEAN NOT NULL DEFAULT false, is_published BOOLEAN NOT NULL DEFAULT true, avatar_image BYTEA, avatar_type VARCHAR(24))");
+      await db.query("CREATE INDEX IF NOT EXISTS reviews_published_recent_idx ON reviews(is_published,created_at DESC)");
       await db.query("CREATE INDEX IF NOT EXISTS bookings_recent_idx ON bookings(created_at DESC)");
       await db.query("CREATE INDEX IF NOT EXISTS bookings_status_recent_idx ON bookings(status,created_at DESC)");
       await db.query("INSERT INTO site_settings(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING",['prices',JSON.stringify(defaultPrices)]);
@@ -129,6 +131,18 @@ app.get('/api/prices',guard(async(req,res)=>{
   if(!databaseReady)return res.json(defaultPrices);
   const result=await db.query("SELECT value FROM site_settings WHERE key='prices'");
   res.set('Cache-Control','no-store');res.json(result.rows[0]?.value||defaultPrices);
+}));
+app.get('/api/reviews',guard(async(req,res)=>{
+  if(!databaseReady)return res.json([]);
+  const r=await db.query('SELECT id,author,service,rating,body,is_demo,created_at,avatar_image IS NOT NULL AS has_avatar FROM reviews WHERE is_published=true ORDER BY created_at DESC,id DESC LIMIT 36');
+  res.set('Cache-Control','no-store');res.json(r.rows);
+}));
+app.get('/api/reviews/:id/avatar',guard(async(req,res)=>{
+  const id=Number(req.params.id);
+  if(!databaseReady||!Number.isSafeInteger(id)||id<1)return res.sendStatus(404);
+  const r=await db.query('SELECT avatar_image,avatar_type FROM reviews WHERE id=$1 AND is_published=true',[id]);
+  if(!r.rows.length||!r.rows[0].avatar_image)return res.sendStatus(404);
+  res.set('Cache-Control','public,max-age=300').type(r.rows[0].avatar_type).send(r.rows[0].avatar_image);
 }));
 app.get('/api/projects',guard(async(req,res)=>{
   if(!databaseReady)return res.json([]);
@@ -235,6 +249,50 @@ app.delete('/api/admin/projects/:id',auth,needDB,guard(async(req,res)=>{
   const id=Number(req.params.id);
   if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
   await db.query('DELETE FROM projects WHERE id=$1',[id]);res.json({ok:true});
+}));
+
+const avatarUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024,files:1,fields:8}});
+function reviewData(body){
+  const author=safeString(body?.author,90),service=safeString(body?.service,130),text=safeString(body?.body,1000);
+  const rating=Number(body?.rating);
+  const is_demo=body?.is_demo==='true'||body?.is_demo===true;
+  const is_published=body?.is_published!=='false'&&body?.is_published!==false;
+  if(author.length<2||service.length<2||text.length<8||!Number.isInteger(rating)||rating<1||rating>5)return null;
+  return {author,service,text,rating,is_demo,is_published};
+}
+app.get('/api/admin/reviews',auth,needDB,guard(async(req,res)=>{
+  const r=await db.query('SELECT id,author,service,rating,body,is_demo,is_published,created_at,avatar_image IS NOT NULL AS has_avatar FROM reviews ORDER BY id DESC LIMIT 250');
+  res.set('Cache-Control','no-store').json(r.rows);
+}));
+app.post('/api/admin/reviews',auth,needDB,avatarUpload.single('avatar'),guard(async(req,res)=>{
+  const data=reviewData(req.body);
+  if(!data)return res.status(400).json({error:'Укажите имя, услугу, текст отзыва (от 8 символов) и оценку от 1 до 5.'});
+  const mime=req.file?getMime(req.file):null;
+  if(req.file&&!mime)return res.status(400).json({error:'Аватар: только JPG, PNG или WebP'});
+  const r=await db.query(
+    'INSERT INTO reviews(author,service,rating,body,is_demo,is_published,avatar_image,avatar_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',
+    [data.author,data.service,data.rating,data.text,data.is_demo,data.is_published,req.file?.buffer||null,mime]
+  );
+  res.status(201).json({ok:true,id:r.rows[0].id});
+}));
+app.put('/api/admin/reviews/:id',auth,needDB,avatarUpload.single('avatar'),guard(async(req,res)=>{
+  const id=Number(req.params.id),data=reviewData(req.body);
+  if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Некорректный номер отзыва'});
+  if(!data)return res.status(400).json({error:'Проверьте имя, услугу, текст и оценку'});
+  const mime=req.file?getMime(req.file):null;
+  if(req.file&&!mime)return res.status(400).json({error:'Аватар: только JPG, PNG или WebP'});
+  const r=await db.query(
+    'UPDATE reviews SET author=$1,service=$2,rating=$3,body=$4,is_demo=$5,is_published=$6,avatar_image=CASE WHEN $7::boolean THEN $8 ELSE avatar_image END,avatar_type=CASE WHEN $7::boolean THEN $9 ELSE avatar_type END WHERE id=$10 RETURNING id',
+    [data.author,data.service,data.rating,data.text,data.is_demo,data.is_published,Boolean(req.file),req.file?.buffer||null,mime,id]
+  );
+  if(!r.rows.length)return res.sendStatus(404);
+  res.json({ok:true,id:r.rows[0].id});
+}));
+app.delete('/api/admin/reviews/:id',auth,needDB,guard(async(req,res)=>{
+  const id=Number(req.params.id);
+  if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Некорректный номер отзыва'});
+  await db.query('DELETE FROM reviews WHERE id=$1',[id]);
+  res.json({ok:true});
 }));
 app.get('/admin',(req,res)=>res.sendFile(path.join(root,'admin.html')));
 app.get('/privacy',(req,res)=>res.sendFile(path.join(root,'privacy.html')));
