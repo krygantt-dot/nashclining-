@@ -26,6 +26,9 @@ jobs:
             sleep 1
           done
           grep -q '"ok":true' /tmp/nash-health.json
-          curl -fsS http://127.0.0.1:10000/ | grep -q 'Наш Клининг'
-          curl -fsS http://127.0.0.1:10000/admin | grep -q 'Админ-панель'
-          curl -fsS http://127.0.0.1:10000/api/prices | grep -q 'furniture'
+          curl -fsS http://127.0.0.1:10000/ -o /tmp/nash-index.html
+          grep -q 'Наш Клининг' /tmp/nash-index.html
+          curl -fsS http://127.0.0.1:10000/admin -o /tmp/nash-admin.html
+          grep -q 'Админ-панель' /tmp/nash-admin.html
+          curl -fsS http://127.0.0.1:10000/api/prices -o /tmp/nash-prices.json
+          grep -q 'furniture' /tmp/nash-prices.json
