@@ -198,20 +198,16 @@ function telegramWhatsAppNumber(rawPhone){
   return null;
 }
 function telegramBookingKeyboard(b){
-  const rows=[];
   const number=telegramWhatsAppNumber(b.phone);
-  if(number){
-    // Opening the WhatsApp chat does not send a message automatically.
-    const greeting='Здравствуйте, '+String(b.name||'').trim()+'! Это «Наш Клининг». Пишем по вашей заявке №'+b.id+'. Когда вам будет удобно обсудить детали?';
-    rows.push([{text:'💬 Ответить клиенту в WhatsApp',
-      url:'https://wa.me/'+number+'?text='+encodeURIComponent(greeting)}]);
-  }
-  // CopyTextButton is native to Telegram inline keyboards, no extra bot callback is necessary.
-  if(b.phone){
-    rows.push([{text:'📋 Скопировать телефон',copy_text:{text:String(b.phone).slice(0,256)}}]);
-  }
-  rows.push([{text:'📂 Открыть админку',url:'https://nashclining.onrender.com/admin'}]);
-  return {inline_keyboard:rows};
+  if(!number)return undefined; // Cannot build reliable chat links without an international phone number.
+  const greeting='Здравствуйте, '+String(b.name||'').trim()+'! Это «Наш Клининг». Пишем по вашей заявке №'+b.id+'. Когда вам будет удобно обсудить детали?';
+  return {inline_keyboard:[[
+    // Official Telegram phone-number link. Works only when user privacy settings permit phone lookup.
+    {text:'✈️ Написать в Telegram',
+      url:'https://t.me/+'+number+'?text='+encodeURIComponent(greeting)},
+    {text:'💬 Написать в WhatsApp',
+      url:'https://wa.me/'+number+'?text='+encodeURIComponent(greeting)}
+  ]]};
 }
 function telegramBookingMessage(b){
   return [
