@@ -29,6 +29,7 @@ const db = DB_URL ? new Pool({
   connectionString:DB_URL, max:5, connectionTimeoutMillis:8000, idleTimeoutMillis:30000,
   ...(process.env.DATABASE_SSL === 'true' ? {ssl:{rejectUnauthorized:true}} : {})
 }) : null;
+const DEMO_REVIEW_SEED=[{"author":"Анастасия","service":"Химчистка дивана","rating":5,"body":"Диван после глубокой чистки выглядит значительно свежее. В демонстрационной карточке показан пример того, как клиент может описать результат.","avatar_url":"https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Дмитрий","service":"Генеральная уборка квартиры","rating":5,"body":"В примере отзыва отмечены аккуратность, внимание к деталям и чистота после уборки квартиры.","avatar_url":"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Елена","service":"Химчистка автомобиля","rating":5,"body":"Пример впечатления после чистки салона: сиденья стали заметно свежее, а внутри приятно находиться.","avatar_url":"https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Сергей","service":"Уборка после ремонта","rating":5,"body":"Демонстрационный текст про уборку после ремонта: меньше строительной пыли, чистые поверхности и готовое помещение.","avatar_url":"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Мария","service":"Уборка офиса","rating":5,"body":"Пример отзыва постоянного клиента: аккуратная уборка рабочего пространства в согласованное время.","avatar_url":"https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Алексей","service":"Химчистка матраса","rating":5,"body":"Пример сообщения о чистке матраса: удалили загрязнения, ткань стала выглядеть намного опрятнее.","avatar_url":"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Ольга","service":"Химчистка ковров","rating":5,"body":"Демонстрационный пример: после профессиональной чистки ковёр стал заметно свежее на вид.","avatar_url":"https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true},{"author":"Игорь","service":"Химчистка мебели","rating":5,"body":"Пример текста о химчистке кресел и дивана: мебель приятно обновилась, работа проведена аккуратно.","avatar_url":"https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=160&h=160&q=80","is_demo":true,"is_published":true}];
 let databaseReady = false;
 let initializing = null;
 let lastDbError = '';
@@ -42,10 +43,22 @@ async function initialize(){
       await db.query("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
       await db.query("CREATE TABLE IF NOT EXISTS projects (id BIGSERIAL PRIMARY KEY, title VARCHAR(120) NOT NULL, category VARCHAR(100) NOT NULL, description VARCHAR(500) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), before_image BYTEA NOT NULL, before_type VARCHAR(24) NOT NULL, after_image BYTEA NOT NULL, after_type VARCHAR(24) NOT NULL)");
       await db.query("CREATE TABLE IF NOT EXISTS reviews (id BIGSERIAL PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), author VARCHAR(90) NOT NULL, service VARCHAR(130) NOT NULL, rating SMALLINT NOT NULL CHECK(rating BETWEEN 1 AND 5), body VARCHAR(1000) NOT NULL, is_demo BOOLEAN NOT NULL DEFAULT false, is_published BOOLEAN NOT NULL DEFAULT true, avatar_image BYTEA, avatar_type VARCHAR(24))");
+      await db.query("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS avatar_url TEXT");
       await db.query("CREATE INDEX IF NOT EXISTS reviews_published_recent_idx ON reviews(is_published,created_at DESC)");
       await db.query("CREATE INDEX IF NOT EXISTS bookings_recent_idx ON bookings(created_at DESC)");
       await db.query("CREATE INDEX IF NOT EXISTS bookings_status_recent_idx ON bookings(status,created_at DESC)");
       await db.query("INSERT INTO site_settings(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING",['prices',JSON.stringify(defaultPrices)]);
+      // Insert eight clearly marked demonstration examples only once.
+      // This single SQL statement also writes the marker atomically; deleted samples will not reappear.
+      await db.query(
+        "WITH seed_marker AS ("+
+        " INSERT INTO site_settings(key,value) VALUES('reviews_demo_seed_v1','true'::jsonb) ON CONFLICT(key) DO NOTHING RETURNING key"+
+        ") INSERT INTO reviews(author,service,rating,body,is_demo,is_published,avatar_url)"+
+        " SELECT x.author,x.service,x.rating,x.body,x.is_demo,x.is_published,x.avatar_url"+
+        " FROM jsonb_to_recordset($1::jsonb) AS x(author TEXT,service TEXT,rating INT,body TEXT,is_demo BOOLEAN,is_published BOOLEAN,avatar_url TEXT)"+
+        " CROSS JOIN seed_marker",
+        [JSON.stringify(DEMO_REVIEW_SEED)]
+      );
       databaseReady=true;
       lastDbError='';
       console.log('PostgreSQL initialized: bookings, prices and projects ready');
@@ -134,7 +147,7 @@ app.get('/api/prices',guard(async(req,res)=>{
 }));
 app.get('/api/reviews',guard(async(req,res)=>{
   if(!databaseReady)return res.json([]);
-  const r=await db.query('SELECT id,author,service,rating,body,is_demo,created_at,avatar_image IS NOT NULL AS has_avatar FROM reviews WHERE is_published=true ORDER BY created_at DESC,id DESC LIMIT 36');
+  const r=await db.query('SELECT id,author,service,rating,body,is_demo,created_at,avatar_url,avatar_image IS NOT NULL AS has_avatar FROM reviews WHERE is_published=true ORDER BY created_at DESC,id DESC LIMIT 36');
   res.set('Cache-Control','no-store');res.json(r.rows);
 }));
 app.get('/api/reviews/:id/avatar',guard(async(req,res)=>{
@@ -261,7 +274,7 @@ function reviewData(body){
   return {author,service,text,rating,is_demo,is_published};
 }
 app.get('/api/admin/reviews',auth,needDB,guard(async(req,res)=>{
-  const r=await db.query('SELECT id,author,service,rating,body,is_demo,is_published,created_at,avatar_image IS NOT NULL AS has_avatar FROM reviews ORDER BY id DESC LIMIT 250');
+  const r=await db.query('SELECT id,author,service,rating,body,is_demo,is_published,created_at,avatar_url,avatar_image IS NOT NULL AS has_avatar FROM reviews ORDER BY id DESC LIMIT 250');
   res.set('Cache-Control','no-store').json(r.rows);
 }));
 app.post('/api/admin/reviews',auth,needDB,avatarUpload.single('avatar'),guard(async(req,res)=>{
@@ -282,7 +295,7 @@ app.put('/api/admin/reviews/:id',auth,needDB,avatarUpload.single('avatar'),guard
   const mime=req.file?getMime(req.file):null;
   if(req.file&&!mime)return res.status(400).json({error:'Аватар: только JPG, PNG или WebP'});
   const r=await db.query(
-    'UPDATE reviews SET author=$1,service=$2,rating=$3,body=$4,is_demo=$5,is_published=$6,avatar_image=CASE WHEN $7::boolean THEN $8 ELSE avatar_image END,avatar_type=CASE WHEN $7::boolean THEN $9 ELSE avatar_type END WHERE id=$10 RETURNING id',
+    'UPDATE reviews SET author=$1,service=$2,rating=$3,body=$4,is_demo=$5,is_published=$6,avatar_image=CASE WHEN $7::boolean THEN $8 ELSE avatar_image END,avatar_type=CASE WHEN $7::boolean THEN $9 ELSE avatar_type END,avatar_url=CASE WHEN $7::boolean THEN NULL ELSE avatar_url END WHERE id=$10 RETURNING id',
     [data.author,data.service,data.rating,data.text,data.is_demo,data.is_published,Boolean(req.file),req.file?.buffer||null,mime,id]
   );
   if(!r.rows.length)return res.sendStatus(404);
