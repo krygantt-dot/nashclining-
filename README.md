@@ -23,6 +23,8 @@ npm start
 
 Без `DATABASE_URL` публичный сайт и прайсы работают, но сохранение заявок, админ-статистика и загрузка работ ответят ошибкой 503. Для реального использования база обязательна.
 
+Адрес сайта для ссылок Telegram определяется автоматически через `RENDER_EXTERNAL_URL`. Если используется собственный домен или иное окружение, задайте `SITE_URL=https://ваш-домен` в переменных Render.
+
 ## Render Web Service (НЕ Docker)
 1. В Render создайте **New → Web Service** и выберите GitHub `krygantt-dot/nashclining-`, ветку `main`.
 2. Runtime/Language = **Node**, Root Directory пустой, Build Command = `npm install --omit=dev`, Start Command = `npm start`.
