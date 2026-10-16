@@ -8,6 +8,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 10000);
 const DB_URL = process.env.DATABASE_URL || '';
 const ADMIN_USER = process.env.ADMIN_USERNAME || 'admin';
+const SITE_URL = (process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || 'https://nashclining.onrender.com').replace(/\/+$/, '');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID || '';
@@ -257,7 +258,7 @@ function telegramBookingMessage(b){
     '💬 Комментарий: '+(b.details||'без комментария'),
     '',
     '✅ Заявка сохранена в PostgreSQL',
-    '📋 Админ-панель: https://nashclining.onrender.com/admin'
+    '📋 Админ-панель: '+SITE_URL+'/admin'
   ].join('\n');
 }
 async function flushTelegramQueue(){
@@ -310,7 +311,7 @@ const telegramTimer=setInterval(()=>{void flushTelegramQueue()},10000);
 telegramTimer.unref?.();
 
 // Telegram Business assistant: separate from the notification bot's outgoing messages.
-const TG_BUSINESS_WEBHOOK='https://nashclining.onrender.com/api/telegram/business-webhook';
+const TG_BUSINESS_WEBHOOK=SITE_URL+'/api/telegram/business-webhook';
 const businessWorking=new Set();
 async function tgBusinessMethod(name,payload={}){
   if(!TELEGRAM_TOKEN)throw Error('Telegram bot token not configured');
@@ -351,9 +352,9 @@ async function businessNotifyManager(chat,reason){
   const text='🙋 НУЖЕН КОНСУЛЬТАНТ\nКлиент: '+safeString(chat.display_name||'Telegram',80)+
     '\nЧат Telegram: '+chat.chat_id+
     '\nПричина: '+safeString(reason,220)+
-    '\n🤖 AI остановлен. Откройте переписку лично и ответьте клиенту.\nАдминка: https://nashclining.onrender.com/admin';
+    '\n🤖 AI остановлен. Откройте переписку лично и ответьте клиенту.\nАдминка: '+SITE_URL+'/admin';
   const r=await sendTelegramMessage(text,{inline_keyboard:[[
-    {text:'Открыть админку',url:'https://nashclining.onrender.com/admin'}
+    {text:'Открыть админку',url:SITE_URL+'/admin'}
   ]]});
   if(!r.ok)console.error('Business handoff notification failed:',r.error);
 }
@@ -819,7 +820,7 @@ app.post('/api/admin/telegram/test',auth,needDB,rateLimit('tgtest',4,60*60*1000)
   if(!TELEGRAM_CONFIGURED)return res.status(503).json({error:'Нужны TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в Render → Environment'});
   const result=await sendTelegramMessage(
     '✅ ТЕСТ «НАШ КЛИНИНГ»\nБот подключён. Новые заявки будут приходить сюда автоматически с данными клиента.',
-    {inline_keyboard:[[ {text:'📂 Открыть админку',url:'https://nashclining.onrender.com/admin'} ]]}
+    {inline_keyboard:[[ {text:'📂 Открыть админку',url:SITE_URL+'/admin'} ]]}
   );
   if(!result.ok)return res.status(502).json({error:result.error});
   void flushTelegramQueue();
